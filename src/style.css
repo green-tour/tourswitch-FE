@@ -1,0 +1,32 @@
+:root {
+  --personal-color-black: #000000;
+  --personal-color-white: #ffffff;
+  --personal-color-gray: #4d4d4d; 
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/*app 자식 중에서 hr태그만 제외하고 설정*/
+#app > :not(hr) {
+  max-width: 1000px;
+  margin: auto;
+}
+
+.bg-image-circle {
+  padding-top: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 50%;
+}
+
+.bg-image-square {
+  padding-top: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
