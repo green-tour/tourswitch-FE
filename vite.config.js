@@ -7,11 +7,11 @@ export default defineConfig({
   // 개발 서버Prozy 정의 
   server: {
     proxy: {
-      // 프론트엣서 /api로 시작하는 요청이 오면 localhost:8808 백엔드로 대신 보내
+      // 프론트엣서 /api로 시작하는 요청이 오면 localhost:8088 백엔드로 대신 보내
       '/api': {
         // target 주소에 요청하기
-        target: 'http://localhost:8080', // Request대상 서버 도메인
-        // 즉 host를 바꿔 나는 8808에 직접 요청한 사람으로 보이게 하는거
+        target: 'http://localhost:8088', // Request대상 서버 도메인 (BE application.yaml의 server.port와 일치)
+        // 즉 host를 바꿔 나는 8088에 직접 요청한 사람으로 보이게 하는거
         changeOrigin: true, // Request Header Host 필드 값을 대상 서버 호스트로 변경
         secure: false,  // SSL 인증서 검증 무시
       }
