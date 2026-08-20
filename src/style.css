@@ -1,7 +1,33 @@
 :root {
-  --personal-color-black: #000000;
-  --personal-color-white: #ffffff;
-  --personal-color-gray: #4d4d4d; 
+  /* 색상 - 브랜드 (Figma Color Palette 프레임 실측) */
+  --team-color-primary: #00bfc4;
+  --team-color-primary-dark: #049a9e;
+  --team-color-danger: #f04452;
+  --team-color-success: #20b878;
+  --team-color-warning: #ffcc3d;
+
+  /* 색상 - 중립 */
+  --team-color-white: #ffffff;
+  --team-color-black: #17211f;
+  --team-color-gray-100: #f4f6f5;
+  --team-color-gray-200: #e6eae8;
+  --team-color-gray-400: #b7c0bd;
+  --team-color-gray-600: #6c7975;
+  --team-color-gray-800: #34403c;
+
+  /* 모서리 */
+  --team-radius: 10px;
+  --team-radius-card: 20px;
+  --team-radius-pill: 999px;
+
+  /* 뱃지 */
+  --team-badge-padding: 4px 12px;
+  --team-badge-font-size: 0.75rem;
+
+  /* 레이아웃 - Figma 프레임 기준값(390px). 고정폭이 아니라 반응형 기준값으로만 쓴다 */
+  --team-mobile-max-width: 430px;
+  --team-mobile-min-width: 320px;
+  --team-nav-height: 64px;
 }
 
 * {
@@ -10,23 +36,41 @@
   box-sizing: border-box;
 }
 
-/*app 자식 중에서 hr태그만 제외하고 설정*/
-#app > :not(hr) {
-  max-width: 1000px;
-  margin: auto;
+html,
+body {
+  height: 100%;
 }
 
-.bg-image-circle {
-  padding-top: 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  border-radius: 50%;
+body {
+  background: var(--team-color-gray-100);
+  color: var(--team-color-black);
+  font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.bg-image-square {
-  padding-top: 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+#app {
+  max-width: var(--team-mobile-max-width);
+  min-width: var(--team-mobile-min-width);
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--team-color-white);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
 }
