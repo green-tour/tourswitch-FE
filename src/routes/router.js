@@ -4,6 +4,17 @@ import { createRouter, createWebHistory } from 'vue-router';
 // 투표·코스 화면만 먼저 연결한다(계획 문서 3절 결정사항 4 - FE 공통 기반은 골격만).
 const routes = [
   {
+    path: '/rooms/create',
+    name: 'room-create',
+    component: () => import('../pages/room/RoomCreate.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/invite/:inviteCode',
+    name: 'invite-show',
+    component: () => import('../pages/invite/InviteShow.vue'),
+  },
+  {
     path: '/rooms/:roomId/vote',
     name: 'vote-show',
     component: () => import('../pages/vote/VoteShow.vue'),
