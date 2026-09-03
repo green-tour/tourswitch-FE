@@ -12,7 +12,6 @@ import AppState from '../../components/common/AppState.vue';
 const route = useRoute();
 const router = useRouter();
 const roomId = route.params.roomId;
-const memberId = route.query.memberId;
 
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -34,8 +33,23 @@ const fetchCandidates = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const res = await myAxios.get(`/rooms/${roomId}/candidates`, { params: { memberId } });
-    candidateGroups.value = res.data.data.candidateGroups;
+    const res = await myAxios.get(`/vote-sessions/${roomId}/candidates`, { params: { includeMyVote: true } });
+    candidateGroups.value = res.data.data.candidateGroups.map((group) => ({
+      ...group,
+      keywordId: group.keywordId ?? group.keywordCode,
+      keywordName: group.keywordName ?? group.keywordCode,
+      items: group.items.map((item) => ({
+        ...item.place,
+        ...item,
+        candidateId: item.candidateId ?? item.place?.id,
+        title: item.title ?? item.place?.name,
+        overview: item.overview ?? item.place?.summary,
+        imageUrl: item.imageUrl ?? item.place?.imageUrl,
+        concentrationGrade: item.concentrationGrade ?? item.place?.congestion?.level,
+        hasWheelchairAccess: item.hasWheelchairAccess ?? item.place?.accessibility?.wheelchair === 'AVAILABLE',
+        hasStrollerAccess: item.hasStrollerAccess ?? item.place?.accessibility?.stroller === 'AVAILABLE',
+      })),
+    }));
   } catch {
     errorMessage.value = '후보 카드를 불러오지 못했습니다.';
   } finally {
@@ -64,9 +78,9 @@ const toggleVote = async () => {
   const card = activeCard.value;
   try {
     if (card.myVote) {
-      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`, { params: { memberId } });
+      await myAxios.delete(`/vote-sessions/${roomId}/votes/${card.candidateId}`);
     } else {
-      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null, { params: { memberId } });
+      await myAxios.put(`/vote-sessions/${roomId}/votes/${card.candidateId}`);
     }
     card.myVote = !card.myVote;
   } catch {
@@ -80,8 +94,8 @@ const completeVoting = async () => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId } });
-    router.push({ name: 'vote-status-show', params: { roomId }, query: { memberId } });
+    await myAxios.patch(`/vote-sessions/${roomId}/participants/me/completion`, { completed: true });
+    router.push({ name: 'vote-status-show', params: { roomId } });
   } catch {
     errorMessage.value = '선택 완료 처리에 실패했습니다.';
   } finally {

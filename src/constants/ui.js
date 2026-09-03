@@ -8,11 +8,13 @@ export const UI_MESSAGE = Object.freeze({
 export const ROOM_STATUS = Object.freeze({
   VOTING: 'VOTING',
   CLOSED: 'CLOSED',
+  VOTING_CLOSED: 'VOTING_CLOSED',
   COURSE_CONFIRMED: 'COURSE_CONFIRMED',
 });
 
 export const ROOM_STATUS_LABEL = Object.freeze({
   [ROOM_STATUS.VOTING]: '투표 진행 중',
   [ROOM_STATUS.CLOSED]: '투표 종료',
+  [ROOM_STATUS.VOTING_CLOSED]: '투표 종료',
   [ROOM_STATUS.COURSE_CONFIRMED]: '코스 확정',
 });

@@ -47,11 +47,13 @@ const routes = [
     path: '/rooms/:roomId/vote',
     name: 'vote-show',
     component: () => import('../pages/vote/VoteShow.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/rooms/:roomId/vote/status',
     name: 'vote-status-show',
     component: () => import('../pages/vote/VoteStatusShow.vue'),
+    meta: { requiresAuth: true },
   },
 ];
 

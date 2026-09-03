@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
+import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
 import StatusBadge from '../../components/common/StatusBadge.vue';
@@ -13,13 +14,14 @@ import { ROOM_STATUS, ROOM_STATUS_LABEL } from '../../constants/ui';
 const route = useRoute();
 const router = useRouter();
 const roomId = route.params.roomId;
-const memberId = route.query.memberId;
 
 const isLoading = ref(true);
 const errorMessage = ref('');
 const roomStatus = ref('');
 const participants = ref([]);
 const ranking = ref([]);
+const isHost = ref(false);
+const isClosing = ref(false);
 
 const completedCount = computed(() => participants.value.filter((p) => p.completed).length);
 const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount)));
@@ -34,32 +36,38 @@ const fetchStatus = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const [tallyRes, candidatesRes] = await Promise.all([
-      myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId } }),
-      myAxios.get(`/rooms/${roomId}/candidates`, { params: { memberId } }),
-    ]);
-
-    const tally = tallyRes.data.data;
+    const tally = (await myAxios.get(`/vote-sessions/${roomId}/vote-status`)).data.data;
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
-
-    const titleByCandidateId = new Map();
-    for (const group of candidatesRes.data.data.candidateGroups) {
-      for (const item of group.items) {
-        titleByCandidateId.set(item.candidateId, { title: item.title, imageUrl: item.imageUrl });
-      }
-    }
-
-    ranking.value = tally.candidates
+    isHost.value = Boolean(tally.isHost ?? tally.host);
+    ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
-        ...(titleByCandidateId.get(candidate.candidateId) ?? { title: '알 수 없는 장소', imageUrl: null }),
+        candidateId: candidate.candidateId ?? candidate.place?.id,
+        title: candidate.title ?? candidate.place?.name ?? '알 수 없는 장소',
+        imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
       }))
       .sort((a, b) => b.voteCount - a.voteCount);
   } catch {
     errorMessage.value = '투표 현황을 불러오지 못했습니다.';
   } finally {
     isLoading.value = false;
+  }
+};
+
+const closeVoting = async () => {
+  if (!window.confirm('미완료 참여자는 더 이상 투표할 수 없습니다. 투표를 종료할까요?')) return;
+  isClosing.value = true;
+  try {
+    await myAxios.patch(`/vote-sessions/${roomId}/status`, {
+      status: 'VOTING_CLOSED',
+      reason: 'HOST_MANUAL_CLOSE',
+    });
+    await fetchStatus();
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
+  } finally {
+    isClosing.value = false;
   }
 };
 
@@ -123,6 +131,12 @@ onMounted(fetchStatus);
           </li>
         </ul>
       </SurfaceCard>
+      <AppButton
+        v-if="isHost && roomStatus === ROOM_STATUS.VOTING"
+        class="close-button"
+        :loading="isClosing"
+        @click="closeVoting"
+      >투표 종료하기</AppButton>
     </template>
 
     <BottomNav />
@@ -140,6 +154,10 @@ onMounted(fetchStatus);
 
 h1 {
   font-size: 1.25rem;
+}
+
+.close-button {
+  margin: 12px auto 24px;
 }
 
 .progress-head {
