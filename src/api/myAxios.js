@@ -8,4 +8,15 @@ const myAxios = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+let accessToken = '';
+
+export const setAccessToken = (token) => {
+  accessToken = token;
+};
+
+myAxios.interceptors.request.use((config) => {
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
+
 export default myAxios;

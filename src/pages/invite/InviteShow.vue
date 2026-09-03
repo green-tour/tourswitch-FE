@@ -5,14 +5,16 @@ import myAxios from '../../api/myAxios';
 import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const invite = ref(null);
 const isLoading = ref(true);
 const isJoining = ref(false);
 const errorMessage = ref('');
-const isAuthenticated = computed(() => Boolean(sessionStorage.getItem('accessToken')));
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const fetchInvite = async () => {
   isLoading.value = true; errorMessage.value = '';

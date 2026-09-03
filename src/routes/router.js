@@ -1,8 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '../store/auth/useAuthStore';
 
 // 회원/세션 도메인이 아직 없어 홈 화면 라우트는 이 골격에 포함하지 않는다.
 // 투표·코스 화면만 먼저 연결한다(계획 문서 3절 결정사항 4 - FE 공통 기반은 골격만).
 const routes = [
+  { 
+    path: '/login', 
+    name: 'login-show', 
+    component: () => import('../pages/auth/LoginShow.vue') 
+  },
+  { 
+    path: '/auth/callback', 
+    name: 'auth-callback-show', 
+    component: () => import('../pages/auth/AuthCallbackShow.vue') 
+  },
+  { 
+    path: '/me', 
+    name: 'my-page-show', 
+    component: () => import('../pages/member/MyPageShow.vue'), 
+    meta: { requiresAuth: true } 
+  },
   {
     path: '/rooms/create',
     name: 'room-create',
@@ -29,6 +46,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true;
+  const authStore = useAuthStore();
+  if (!authStore.isInitialized && !authStore.isAuthenticated) await authStore.restoreSession();
+  if (authStore.isAuthenticated) return true;
+  return { name: 'login-show', query: { returnTo: to.fullPath } };
 });
 
 router.onError((error) => {
