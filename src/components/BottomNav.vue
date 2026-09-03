@@ -1,20 +1,26 @@
 <script setup>
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 // 홈/지도/프로필 화면은 아직 다른 담당자 몫이라 라우트가 없다. 지금은 다섯 아이콘을
 // 전부 보여주되 실제로 이동 가능한 건 "투표" 탭뿐이다 - 나머지는 그 화면이 생기면 연결한다.
 const route = useRoute();
+const router = useRouter();
 
 const isVoteActive = computed(() => route.name === 'vote-show' || route.name === 'vote-status-show');
 
 const items = [
   { key: 'home', label: '홈', icon: '⌂' },
   { key: 'map', label: '지도', icon: '⌗' },
-  { key: 'schedule', label: '일정', icon: '◷' },
+  { key: 'schedule', label: '기록', icon: '◷', routeName: 'history-index' },
   { key: 'vote', label: '투표', icon: '☑' },
-  { key: 'profile', label: '프로필', icon: '◎' },
+  { key: 'profile', label: '프로필', icon: '◎', routeName: 'my-page-show' },
 ];
+
+const isActive = (item) =>
+  (item.key === 'vote' && isVoteActive.value) ||
+  (item.key === 'schedule' && String(route.name).startsWith('history-')) ||
+  route.name === item.routeName;
 </script>
 
 <template>
@@ -23,9 +29,10 @@ const items = [
       v-for="item in items"
       :key="item.key"
       class="nav-item"
-      :class="{ active: item.key === 'vote' && isVoteActive }"
-      :disabled="item.key !== 'vote'"
+      :class="{ active: isActive(item) }"
+      :disabled="!item.routeName && item.key !== 'vote'"
       type="button"
+      @click="item.routeName && router.push({ name: item.routeName })"
     >
       <span class="icon" aria-hidden="true">{{ item.icon }}</span>
       <span class="label">{{ item.label }}</span>

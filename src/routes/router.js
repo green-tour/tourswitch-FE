@@ -21,6 +21,18 @@ const routes = [
     meta: { requiresAuth: true } 
   },
   {
+    path: '/history',
+    name: 'history-index',
+    component: () => import('../pages/history/HistoryIndex.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/history/:courseId',
+    name: 'history-show',
+    component: () => import('../pages/history/HistoryShow.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/rooms/create',
     name: 'room-create',
     component: () => import('../pages/room/RoomCreate.vue'),
