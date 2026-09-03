@@ -6,6 +6,7 @@ import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
+import { isMockMode } from '../../api/mockAdapter';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,7 +15,7 @@ const invite = ref(null);
 const isLoading = ref(true);
 const isJoining = ref(false);
 const errorMessage = ref('');
-const isAuthenticated = computed(() => authStore.isAuthenticated);
+const isAuthenticated = computed(() => authStore.isAuthenticated || isMockMode());
 
 const fetchInvite = async () => {
   isLoading.value = true; errorMessage.value = '';

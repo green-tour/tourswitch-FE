@@ -10,7 +10,7 @@ const router = useRouter();
 const isVoteActive = computed(() => route.name === 'vote-show' || route.name === 'vote-status-show');
 
 const items = [
-  { key: 'home', label: '홈', icon: '⌂' },
+  { key: 'home', label: '홈', icon: '⌂', routeName: 'home-show' },
   { key: 'map', label: '지도', icon: '⌗' },
   { key: 'schedule', label: '기록', icon: '◷', routeName: 'history-index' },
   { key: 'vote', label: '투표', icon: '☑' },

@@ -4,6 +4,16 @@ import { useAuthStore } from '../store/auth/useAuthStore';
 // 회원/세션 도메인이 아직 없어 홈 화면 라우트는 이 골격에 포함하지 않는다.
 // 투표·코스 화면만 먼저 연결한다(계획 문서 3절 결정사항 4 - FE 공통 기반은 골격만).
 const routes = [
+  {
+    path: '/',
+    name: 'home-show',
+    component: () => import('../pages/home/HomeShow.vue'),
+  },
+  {
+    path: '/preview',
+    name: 'preview-index',
+    component: () => import('../pages/preview/PreviewIndex.vue'),
+  },
   { 
     path: '/login', 
     name: 'login-show', 
@@ -63,6 +73,10 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  if (import.meta.env.DEV && (to.query.preview === '1' || sessionStorage.getItem('previewMode') === 'true')) {
+    sessionStorage.setItem('previewMode', 'true');
+    return true;
+  }
   if (!to.meta.requiresAuth) return true;
   const authStore = useAuthStore();
   if (!authStore.isInitialized && !authStore.isAuthenticated) await authStore.restoreSession();
