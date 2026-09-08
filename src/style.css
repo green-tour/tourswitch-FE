@@ -59,7 +59,7 @@
   --team-badge-font-size: var(--team-font-size-sm);
 
   /* 레이아웃 - Figma 프레임 기준값(390px). 고정폭이 아니라 반응형 기준값으로만 쓴다 */
-  --team-mobile-max-width: 430px;
+  --team-mobile-max-width: 390px;
   --team-mobile-min-width: 320px;
   --team-nav-height: 64px;
 }
@@ -73,6 +73,10 @@
 html,
 body {
   height: 100%;
+}
+
+@media (max-width: 480px) {
+  body { background: var(--team-color-white); }
 }
 
 body {
