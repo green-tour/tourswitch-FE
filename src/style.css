@@ -15,17 +15,51 @@
   --team-color-gray-600: #6c7975;
   --team-color-gray-800: #34403c;
 
+  /* 색상 - 상태 */
+  --team-color-info-bg: #e7f8f8;
+  --team-color-danger-bg: #fff0f1;
+  --team-color-success-bg: #eaf8f2;
+
+  /* 타이포그래피 */
+  --team-font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  --team-font-size-xs: 0.6875rem;
+  --team-font-size-sm: 0.75rem;
+  --team-font-size-md: 0.875rem;
+  --team-font-size-lg: 1rem;
+  --team-font-size-xl: 1.25rem;
+  --team-font-weight-medium: 500;
+  --team-font-weight-semibold: 600;
+  --team-font-weight-bold: 700;
+  --team-line-height-body: 1.5;
+
   /* 모서리 */
   --team-radius: 10px;
   --team-radius-card: 20px;
   --team-radius-pill: 999px;
 
+  /* 간격 */
+  --team-space-1: 4px;
+  --team-space-2: 8px;
+  --team-space-3: 12px;
+  --team-space-4: 16px;
+  --team-space-5: 20px;
+  --team-space-6: 24px;
+
+  /* 테두리와 그림자 */
+  --team-border-default: 1px solid var(--team-color-gray-200);
+  --team-shadow-card: 0 6px 20px rgb(23 33 31 / 8%);
+
+  /* 컨트롤 */
+  --team-control-height-sm: 36px;
+  --team-control-height-md: 44px;
+  --team-control-height-lg: 52px;
+
   /* 뱃지 */
   --team-badge-padding: 4px 12px;
-  --team-badge-font-size: 0.75rem;
+  --team-badge-font-size: var(--team-font-size-sm);
 
   /* 레이아웃 - Figma 프레임 기준값(390px). 고정폭이 아니라 반응형 기준값으로만 쓴다 */
-  --team-mobile-max-width: 430px;
+  --team-mobile-max-width: 390px;
   --team-mobile-min-width: 320px;
   --team-nav-height: 64px;
 }
@@ -41,10 +75,15 @@ body {
   height: 100%;
 }
 
+@media (max-width: 480px) {
+  body { background: var(--team-color-white); }
+}
+
 body {
   background: var(--team-color-gray-100);
   color: var(--team-color-black);
-  font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  font-family: var(--team-font-family);
+  line-height: var(--team-line-height-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -63,6 +102,19 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgb(0 191 196 / 25%);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 a {
