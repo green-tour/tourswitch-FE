@@ -14,6 +14,16 @@ const routes = [
     name: 'preview-index',
     component: () => import('../pages/preview/PreviewIndex.vue'),
   },
+  {
+    path: '/places',
+    name: 'place-index',
+    component: () => import('../pages/place/PlaceIndex.vue'),
+  },
+  {
+    path: '/places/:placeId',
+    name: 'place-show',
+    component: () => import('../pages/place/PlaceShow.vue'),
+  },
   { 
     path: '/login', 
     name: 'login-show', 
