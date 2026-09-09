@@ -3,16 +3,17 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
-import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
 import StatusBadge from '../../components/common/StatusBadge.vue';
 import SurfaceCard from '../../components/common/SurfaceCard.vue';
 import { ROOM_STATUS, ROOM_STATUS_LABEL } from '../../constants/ui';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 // memberId는 회원 도메인 JWT 인증이 붙기 전까지 쿼리 파라미터로 임시 수신한다.
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const roomId = route.params.roomId;
 
 const isLoading = ref(true);
@@ -20,8 +21,6 @@ const errorMessage = ref('');
 const roomStatus = ref('');
 const participants = ref([]);
 const ranking = ref([]);
-const isHost = ref(false);
-const isClosing = ref(false);
 
 const completedCount = computed(() => participants.value.filter((p) => p.completed).length);
 const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount)));
@@ -36,10 +35,10 @@ const fetchStatus = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const tally = (await myAxios.get(`/vote-sessions/${roomId}/vote-status`)).data.data;
+    if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
-    isHost.value = Boolean(tally.isHost ?? tally.host);
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
@@ -48,26 +47,10 @@ const fetchStatus = async () => {
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
       }))
       .sort((a, b) => b.voteCount - a.voteCount);
-  } catch {
-    errorMessage.value = '투표 현황을 불러오지 못했습니다.';
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? error.message ?? '투표 현황을 불러오지 못했습니다.';
   } finally {
     isLoading.value = false;
-  }
-};
-
-const closeVoting = async () => {
-  if (!window.confirm('미완료 참여자는 더 이상 투표할 수 없습니다. 투표를 종료할까요?')) return;
-  isClosing.value = true;
-  try {
-    await myAxios.patch(`/vote-sessions/${roomId}/status`, {
-      status: 'VOTING_CLOSED',
-      reason: 'HOST_MANUAL_CLOSE',
-    });
-    await fetchStatus();
-  } catch (error) {
-    errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
-  } finally {
-    isClosing.value = false;
   }
 };
 
@@ -131,12 +114,6 @@ onMounted(fetchStatus);
           </li>
         </ul>
       </SurfaceCard>
-      <AppButton
-        v-if="isHost && roomStatus === ROOM_STATUS.VOTING"
-        class="close-button"
-        :loading="isClosing"
-        @click="closeVoting"
-      >투표 종료하기</AppButton>
     </template>
 
     <BottomNav />

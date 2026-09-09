@@ -6,11 +6,13 @@ import BottomNav from '../../components/BottomNav.vue';
 import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 // memberId는 회원 도메인 JWT 인증이 붙기 전까지 쿼리 파라미터로 임시 수신한다
 // (백엔드 VoteController와 동일한 사유 - SecurityContext 연동 시 교체).
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const roomId = route.params.roomId;
 
 const isLoading = ref(true);
@@ -19,6 +21,7 @@ const candidateGroups = ref([]);
 const activeGroupIndex = ref(0);
 const activeCardIndex = ref(0);
 const isSubmitting = ref(false);
+const selectedCandidateIds = ref(readSelectedCandidateIds());
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
 const activeCard = computed(() => activeGroup.value?.items[activeCardIndex.value] ?? null);
@@ -33,25 +36,21 @@ const fetchCandidates = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const res = await myAxios.get(`/vote-sessions/${roomId}/candidates`, { params: { includeMyVote: true } });
-    candidateGroups.value = res.data.data.candidateGroups.map((group) => ({
-      ...group,
-      keywordId: group.keywordId ?? group.keywordCode,
-      keywordName: group.keywordName ?? group.keywordCode,
-      items: group.items.map((item) => ({
-        ...item.place,
-        ...item,
-        candidateId: item.candidateId ?? item.place?.id,
-        title: item.title ?? item.place?.name,
-        overview: item.overview ?? item.place?.summary,
-        imageUrl: item.imageUrl ?? item.place?.imageUrl,
-        concentrationGrade: item.concentrationGrade ?? item.place?.congestion?.level,
-        hasWheelchairAccess: item.hasWheelchairAccess ?? item.place?.accessibility?.wheelchair === 'AVAILABLE',
-        hasStrollerAccess: item.hasStrollerAccess ?? item.place?.accessibility?.stroller === 'AVAILABLE',
+    if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
+    candidateGroups.value = [{
+      keywordId: 'all',
+      keywordName: '후보 관광지',
+      items: (tally.candidates ?? []).map((candidate) => ({
+        ...candidate,
+        candidateId: candidate.candidateId,
+        title: `관광지 후보 ${candidate.displayOrder}`,
+        overview: `관광지 ID ${candidate.touristSpotId}`,
+        myVote: selectedCandidateIds.value.includes(candidate.candidateId),
       })),
-    }));
-  } catch {
-    errorMessage.value = '후보 카드를 불러오지 못했습니다.';
+    }];
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? error.message ?? '후보 카드를 불러오지 못했습니다.';
   } finally {
     isLoading.value = false;
   }
@@ -78,11 +77,15 @@ const toggleVote = async () => {
   const card = activeCard.value;
   try {
     if (card.myVote) {
-      await myAxios.delete(`/vote-sessions/${roomId}/votes/${card.candidateId}`);
+      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`, { params: { memberId: authStore.user.id } });
     } else {
-      await myAxios.put(`/vote-sessions/${roomId}/votes/${card.candidateId}`);
+      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null, { params: { memberId: authStore.user.id } });
     }
     card.myVote = !card.myVote;
+    selectedCandidateIds.value = card.myVote
+      ? [...selectedCandidateIds.value, card.candidateId]
+      : selectedCandidateIds.value.filter((id) => id !== card.candidateId);
+    sessionStorage.setItem(`selectedCandidates:${roomId}`, JSON.stringify(selectedCandidateIds.value));
   } catch {
     errorMessage.value = '투표 처리에 실패했습니다.';
   } finally {
@@ -94,7 +97,7 @@ const completeVoting = async () => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/vote-sessions/${roomId}/participants/me/completion`, { completed: true });
+    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });
     router.push({ name: 'vote-status-show', params: { roomId } });
   } catch {
     errorMessage.value = '선택 완료 처리에 실패했습니다.';
@@ -102,6 +105,14 @@ const completeVoting = async () => {
     isSubmitting.value = false;
   }
 };
+
+function readSelectedCandidateIds() {
+  try {
+    return JSON.parse(sessionStorage.getItem(`selectedCandidates:${roomId}`) ?? '[]');
+  } catch {
+    return [];
+  }
+}
 
 onMounted(fetchCandidates);
 </script>

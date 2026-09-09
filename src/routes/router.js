@@ -29,10 +29,11 @@ const routes = [
     name: 'login-show', 
     component: () => import('../pages/auth/LoginShow.vue') 
   },
-  { 
-    path: '/auth/callback', 
-    name: 'auth-callback-show', 
-    component: () => import('../pages/auth/AuthCallbackShow.vue') 
+  {
+    path: '/auth/callback',
+    alias: '/oauth2/callback',
+    name: 'auth-callback-show',
+    component: () => import('../pages/auth/AuthCallbackShow.vue')
   },
   { 
     path: '/me', 

@@ -1,17 +1,15 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { preserveReturnTo } from '../../util/oauth';
 
 const route = useRoute();
 const returnTo = computed(() => route.query.returnTo ?? '/rooms/create');
-const kakaoClientId = import.meta.env.VITE_KAKAO_CLIENT_ID;
-const redirectUri = `${window.location.origin}/auth/callback`;
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
 const startKakaoLogin = () => {
-  sessionStorage.setItem('returnTo', returnTo.value);
-  if (!kakaoClientId) return;
-  const query = new URLSearchParams({ client_id: kakaoClientId, redirect_uri: redirectUri, response_type: 'code' });
-  window.location.assign(`https://kauth.kakao.com/oauth/authorize?${query}`);
+  preserveReturnTo(returnTo.value);
+  window.location.assign(`${apiBaseUrl}/auth/login`);
 };
 </script>
 
@@ -23,7 +21,6 @@ const startKakaoLogin = () => {
       <button class="kakao" type="button" aria-label="카카오 로그인" @click="startKakaoLogin">
         <img src="/kakao/kakao_login_medium_wide.png" alt="카카오 로그인" width="300" height="45" />
       </button>
-      <p v-if="!kakaoClientId">카카오 앱 키 설정이 필요합니다.</p>
     </div>
   </main>
 </template>

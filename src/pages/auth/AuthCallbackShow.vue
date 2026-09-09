@@ -3,17 +3,23 @@ import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
+import { consumeReturnTo } from '../../util/oauth';
 
 const route = useRoute(); const router = useRouter(); const authStore = useAuthStore();
 const errorMessage = ref('');
 const authenticate = async () => {
-  if (!route.query.code) { errorMessage.value = '카카오 인증 정보가 없습니다.'; return; }
+  const responseCode = String(route.query.code ?? '');
+  if (responseCode === '26') { errorMessage.value = '탈퇴한 계정은 다시 로그인할 수 없습니다.'; return; }
+  if (responseCode === '28') { errorMessage.value = '카카오 인증에 실패했습니다. 다시 시도해주세요.'; return; }
+  if (responseCode !== '00') { errorMessage.value = '유효하지 않은 로그인 응답입니다.'; return; }
   try {
-    await authStore.login(route.query.code, `${window.location.origin}/auth/callback`);
-    const returnTo = sessionStorage.getItem('returnTo') ?? '/rooms/create';
-    sessionStorage.removeItem('returnTo');
+    await authStore.completeOAuthLogin();
+    const returnTo = consumeReturnTo('/');
     router.replace(returnTo);
-  } catch (error) { errorMessage.value = error.response?.data?.message ?? '로그인하지 못했습니다.'; }
+  } catch (error) {
+    consumeReturnTo();
+    errorMessage.value = error.response?.data?.message ?? '로그인하지 못했습니다.';
+  }
 };
 onMounted(authenticate);
 </script>
