@@ -6,6 +6,7 @@ import { isMockMode, mockAdapter } from './mockAdapter';
 // 미리 만들어두지 않는다).
 const myAxios = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 

@@ -9,14 +9,17 @@ export const useAuthStore = defineStore('authStore', () => {
   const isAuthenticated = computed(() => Boolean(accessToken.value));
 
   const applySession = (data) => {
+    if (!data?.accessToken) throw new Error('인증 토큰이 응답에 없습니다.');
     accessToken.value = data.accessToken;
-    user.value = data.user;
+    if (data.user) user.value = data.user;
     setAccessToken(data.accessToken);
+    isInitialized.value = true;
   };
 
-  const login = async (oauthCode, redirectUri) => {
-    const { data } = await myAxios.post('/auth/login', { oauthCode, redirectUri });
+  const completeOAuthLogin = async () => {
+    const { data } = await myAxios.post('/auth/refresh');
     applySession(data.data);
+    await fetchMe();
     return data.data;
   };
 
@@ -24,6 +27,7 @@ export const useAuthStore = defineStore('authStore', () => {
     try {
       const { data } = await myAxios.post('/auth/refresh');
       applySession(data.data);
+      await fetchMe();
       return true;
     } catch { clearSession(); return false; }
     finally { isInitialized.value = true; }
@@ -38,5 +42,5 @@ export const useAuthStore = defineStore('authStore', () => {
   const clearSession = () => { accessToken.value = ''; user.value = null; setAccessToken(''); };
   const logout = async () => { try { await myAxios.post('/auth/logout'); } finally { clearSession(); } };
 
-  return { user, accessToken, isAuthenticated, isInitialized, login, restoreSession, fetchMe, logout, clearSession };
+  return { user, accessToken, isAuthenticated, isInitialized, completeOAuthLogin, restoreSession, fetchMe, logout, clearSession };
 });

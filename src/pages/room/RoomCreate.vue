@@ -1,71 +1,110 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import AppButton from '../../components/common/AppButton.vue';
 import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const step = ref(1);
-const regions = ref([]);
-const keywords = ref([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const result = ref(null);
-const form = reactive({ regionCode: '', travelDate: '', keywordCodes: [], placeCount: 1, options: { food: true, stay: true, shopping: false } });
+const form = reactive({ regionId: null, travelDate: '', keywordIds: [], placeCount: 3, options: { food: true, stay: true, shopping: false } });
+const today = new Date();
+const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1));
+const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 현재 백엔드에는 메타데이터 조회 API가 없어, DB 기준 데이터를 숫자 ID와 함께 관리한다.
+const regions = [
+  { id: 1, name: '종로구' }, { id: 2, name: '중구' }, { id: 3, name: '용산구' }, { id: 4, name: '성동구' },
+  { id: 5, name: '광진구' }, { id: 6, name: '동대문구' }, { id: 7, name: '중랑구' }, { id: 8, name: '성북구' },
+  { id: 9, name: '강북구' }, { id: 10, name: '도봉구' }, { id: 11, name: '노원구' }, { id: 12, name: '은평구' },
+  { id: 13, name: '서대문구' }, { id: 14, name: '마포구' }, { id: 15, name: '양천구' }, { id: 16, name: '강서구' },
+  { id: 17, name: '구로구' }, { id: 18, name: '금천구' }, { id: 19, name: '영등포구' }, { id: 20, name: '동작구' },
+  { id: 21, name: '관악구' }, { id: 22, name: '서초구' }, { id: 23, name: '강남구' }, { id: 24, name: '송파구' },
+  { id: 25, name: '강동구' },
+];
+const keywords = [
+  { id: 1, name: '전시·박물관' }, { id: 2, name: '축제·행사' }, { id: 3, name: '도시공원' },
+  { id: 4, name: '역사유적' }, { id: 5, name: '레저스포츠' }, { id: 6, name: '체험' },
+  { id: 7, name: '공연' }, { id: 8, name: '자연·산' }, { id: 9, name: '종교성지' },
+  { id: 10, name: '골목·거리·둘레길' }, { id: 11, name: '랜드마크·전망' }, { id: 12, name: '테마파크' },
+];
 
 const canContinue = computed(() => {
-  if (step.value === 1) return Boolean(form.regionCode);
+  if (step.value === 1) return Boolean(form.regionId);
   if (step.value === 2) return Boolean(form.travelDate);
-  return form.keywordCodes.length >= 1 && form.keywordCodes.length <= 4;
+  return form.keywordIds.length >= 1 && form.keywordIds.length <= 4;
 });
 
-const fallbackRegions = [
-  ['SEOUL-GANGNAM', '강남구'], ['SEOUL-GANGDONG', '강동구'], ['SEOUL-GANGBUK', '강북구'],
-  ['SEOUL-GANGSEO', '강서구'], ['SEOUL-GWANAK', '관악구'], ['SEOUL-GWANGJIN', '광진구'],
-  ['SEOUL-GURO', '구로구'], ['SEOUL-GEUMCHEON', '금천구'], ['SEOUL-DOBONG', '도봉구'],
-];
-const fallbackKeywords = [
-  ['HISTORY', '역사문화'], ['CULTURE', '문화예술'], ['NATURE', '숲체험'], ['CITY', '도시공원'],
-  ['LEISURE', '레저스포츠'], ['EXPERIENCE', '체험'], ['WALK', '걷기'], ['PHOTO', '사진'], ['ANIMAL', '동물'],
-];
+const calendarTitle = computed(() => `${calendarMonth.value.getFullYear()}년 ${calendarMonth.value.getMonth() + 1}월`);
+const calendarDays = computed(() => {
+  const year = calendarMonth.value.getFullYear();
+  const month = calendarMonth.value.getMonth();
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: firstWeekday + lastDay }, (_, index) => {
+    if (index < firstWeekday) return null;
+    const day = index - firstWeekday + 1;
+    const date = new Date(year, month, day);
+    return { day, value: toDateValue(date), disabled: date < startOfDay(today) };
+  });
+});
 
-const normalizeOptions = (data, fallback) => {
-  const items = data?.items ?? data ?? [];
-  return items.length ? items.map((item) => ({ code: item.code, name: item.name })) : fallback.map(([code, name]) => ({ code, name }));
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function toDateValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const moveMonth = (amount) => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + amount, 1);
 };
 
-const fetchMetadata = async () => {
-  try {
-    const [regionRes, keywordRes] = await Promise.all([myAxios.get('/metadata/regions'), myAxios.get('/metadata/keywords')]);
-    regions.value = normalizeOptions(regionRes.data.data, fallbackRegions);
-    keywords.value = normalizeOptions(keywordRes.data.data, fallbackKeywords);
-  } catch {
-    regions.value = normalizeOptions([], fallbackRegions);
-    keywords.value = normalizeOptions([], fallbackKeywords);
-  }
+const selectDate = (date) => {
+  if (!date.disabled) form.travelDate = date.value;
 };
 
-const toggleKeyword = (code) => {
-  const index = form.keywordCodes.indexOf(code);
-  if (index >= 0) form.keywordCodes.splice(index, 1);
-  else if (form.keywordCodes.length < 4) form.keywordCodes.push(code);
+const toggleKeyword = (id) => {
+  const index = form.keywordIds.indexOf(id);
+  if (index >= 0) form.keywordIds.splice(index, 1);
+  else if (form.keywordIds.length < 4) form.keywordIds.push(id);
 };
 
 const next = async () => {
   if (!canContinue.value) return;
   if (step.value < 3) { step.value += 1; return; }
+  if (!authStore.user?.id) { errorMessage.value = '로그인 정보를 확인하지 못했습니다. 다시 로그인해주세요.'; return; }
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await myAxios.post('/vote-sessions', {
+    const region = regions.find((item) => item.id === form.regionId);
+    const response = await myAxios.post('/rooms', {
+      roomName: `${region?.name ?? '서울'} 여행`,
       travelDate: form.travelDate,
-      regionCodes: [form.regionCode],
-      keywordCodes: form.keywordCodes,
-      targetPlaceCount: form.placeCount,
-    });
-    result.value = response.data.data;
+      regionId: form.regionId,
+      keywordIds: form.keywordIds,
+      courseSpotCount: form.placeCount,
+      includesFood: form.options.food,
+      includesLodging: form.options.stay,
+      includesShopping: form.options.shopping,
+    }, { params: { memberId: authStore.user.id } });
+    const room = response.data.data;
+    result.value = { ...room, inviteUrl: `${window.location.origin}/invite/${room.inviteToken}` };
+    localStorage.setItem(`activeTravelRoom:${authStore.user.id}`, JSON.stringify({
+      roomId: room.roomId,
+      roomName: room.roomName,
+      travelDate: room.travelDate,
+    }));
     step.value = 4;
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '여행방을 만들지 못했습니다.';
@@ -73,11 +112,9 @@ const next = async () => {
 };
 
 const copyInvite = async () => {
-  const url = result.value?.invite?.url;
+  const url = result.value?.inviteUrl;
   if (url) await navigator.clipboard.writeText(url);
 };
-
-onMounted(fetchMetadata);
 </script>
 
 <template>
@@ -88,23 +125,28 @@ onMounted(fetchMetadata);
     <AppState v-if="isLoading" type="loading" message="후보 카드를 구성하고 있습니다." />
     <section v-else-if="step === 1" class="step-content">
       <div class="symbol symbol-1" role="img" aria-label="지구본"></div><h2>어디로 떠나볼까요?</h2><p>서울 자치구</p>
-      <div class="chips"><button v-for="region in regions" :key="region.code" class="chip" :class="{ selected: form.regionCode === region.code }" @click="form.regionCode = region.code">{{ region.name }}</button></div>
+      <div class="chips"><button v-for="region in regions" :key="region.id" class="chip" :class="{ selected: form.regionId === region.id }" @click="form.regionId = region.id">{{ region.name }}</button></div>
     </section>
     <section v-else-if="step === 2" class="step-content">
       <div class="symbol symbol-2" role="img" aria-label="달력"></div><h2>언제 떠나시나요?</h2>
-      <label class="date-box">여행 날짜<input v-model="form.travelDate" type="date" :min="new Date().toISOString().slice(0, 10)" /></label>
+      <section class="calendar" aria-label="여행 날짜 선택">
+        <div class="calendar-header"><button type="button" aria-label="이전 달" @click="moveMonth(-1)">‹</button><strong>{{ calendarTitle }}</strong><button type="button" aria-label="다음 달" @click="moveMonth(1)">›</button></div>
+        <div class="calendar-weekdays"><span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span></div>
+        <div class="calendar-days"><span v-for="(date, index) in calendarDays" :key="date?.value ?? `empty-${index}`" class="calendar-day" :class="{ empty: !date, selected: date?.value === form.travelDate, disabled: date?.disabled }"><button v-if="date" type="button" :disabled="date.disabled" @click="selectDate(date)">{{ date.day }}</button></span></div>
+      </section>
+      <p class="selected-date">{{ form.travelDate ? `${form.travelDate} 출발` : '출발 날짜를 선택해주세요.' }}</p>
     </section>
     <section v-else-if="step === 3" class="step-content compact">
-      <div class="symbol symbol-3" role="img" aria-label="하트"></div><h2>어떤 여행을 하고 싶나요?</h2><p class="count">{{ form.keywordCodes.length }} / 최대 4개</p>
-      <div class="chips"><button v-for="keyword in keywords" :key="keyword.code" class="chip" :class="{ selected: form.keywordCodes.includes(keyword.code) }" @click="toggleKeyword(keyword.code)">{{ keyword.name }}</button></div>
-      <h3>목표 관광지 수</h3><div class="chips centered"><button v-for="count in 3" :key="count" class="chip" :class="{ selected: form.placeCount === count }" @click="form.placeCount = count">{{ count }}곳</button></div>
+      <div class="symbol symbol-3" role="img" aria-label="하트"></div><h2>어떤 여행을 하고 싶나요?</h2><p class="count">{{ form.keywordIds.length }} / 최대 4개</p>
+      <div class="chips"><button v-for="keyword in keywords" :key="keyword.id" class="chip" :class="{ selected: form.keywordIds.includes(keyword.id) }" @click="toggleKeyword(keyword.id)">{{ keyword.name }}</button></div>
+      <h3>목표 관광지 수</h3><div class="chips centered"><button v-for="count in [1, 2, 3]" :key="count" class="chip" :class="{ selected: form.placeCount === count }" @click="form.placeCount = count">{{ count }}곳</button></div>
       <h3>추가 선택 사항</h3><label v-for="(label, key) in { food: '음식점 추천 받기', stay: '숙박 추천 받기', shopping: '쇼핑 추천 받기' }" :key="key" class="switch-row">{{ label }}<input v-model="form.options[key]" type="checkbox" /></label>
     </section>
     <section v-else class="result-content">
-      <div class="success">✓</div><h2>{{ form.travelDate }} · {{ regions.find((item) => item.code === form.regionCode)?.name }} 여행</h2>
-      <p>키워드 {{ form.keywordCodes.length }}개 · 후보 카드 {{ result?.candidateCount ?? '—' }}개 구성 완료</p>
-      <div class="invite-card"><strong>초대 링크</strong><div class="invite-url"><span>{{ result?.invite?.url }}</span><button @click="copyInvite">복사</button></div><AppButton variant="secondary" block @click="copyInvite">메신저로 공유</AppButton></div>
-      <AppButton @click="router.push(`/rooms/${result?.session?.id}/vote`)">투표하러 가기</AppButton>
+      <div class="success">✓</div><h2>{{ form.travelDate }} · {{ regions.find((item) => item.id === form.regionId)?.name }} 여행</h2>
+      <p>키워드 {{ form.keywordIds.length }}개 · 후보 카드 {{ result?.candidateCount ?? '—' }}개 구성 완료</p>
+      <div class="invite-card"><strong>초대 링크</strong><div class="invite-url"><span>{{ result?.inviteUrl }}</span><button @click="copyInvite">복사</button></div><AppButton variant="secondary" block @click="copyInvite">메신저로 공유</AppButton></div>
+      <AppButton @click="router.push(`/rooms/${result?.roomId}/vote`)">투표하러 가기</AppButton>
     </section>
 
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
@@ -113,6 +155,6 @@ onMounted(fetchMetadata);
 </template>
 
 <style scoped>
-.create-page{min-height:100vh;padding:12px 20px 88px;position:relative;display:flex;flex-direction:column}.step{position:absolute;right:20px;top:25px;color:var(--team-color-primary);font-size:var(--team-font-size-sm);font-weight:700}.step-content,.result-content{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:44px}.symbol{width:70px;height:70px;object-fit:cover;object-position:50% 22%;border-radius:12px}.step-content h2,.result-content h2{font-size:18px}.step-content p{font-size:12px;font-weight:700}.chips{width:100%;display:flex;flex-wrap:wrap;gap:9px;justify-content:center}.chip{padding:5px 13px;border:1px solid var(--team-color-primary);border-radius:999px;background:#fff;color:var(--team-color-primary-dark);font-size:12px}.chip.selected{background:var(--team-color-primary);color:#fff}.date-box{width:300px;height:300px;background:#d9d9d9;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px}.date-box input{padding:12px;border:var(--team-border-default);border-radius:10px}.compact{padding-top:20px}.compact h3{margin-top:28px;font-size:14px}.count{color:var(--team-color-primary)}.switch-row{width:240px;padding:10px 16px;border-radius:999px;background:#fafafa;display:flex;justify-content:space-between;font-size:12px;box-shadow:0 3px 12px #203d3510}.switch-row input{accent-color:var(--team-color-primary)}.next{margin:auto auto 8px}.error{color:var(--team-color-danger);text-align:center}.result-content{text-align:center;padding-top:20px}.success{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#cef2e4;font-size:36px}.result-content>p{color:var(--team-color-gray-600);font-size:13px}.invite-card{width:100%;padding:16px;background:#fbfaf7;text-align:left;display:grid;gap:12px}.invite-url{padding:12px;border-radius:999px;background:#fff;display:flex;justify-content:space-between;gap:8px;font-size:12px}.invite-url span{overflow:hidden;text-overflow:ellipsis}.invite-url button{border:0;background:none;color:var(--team-color-primary-dark)}
+.create-page{min-height:100vh;padding:12px 20px 88px;position:relative;display:flex;flex-direction:column}.step{position:absolute;right:20px;top:25px;color:var(--team-color-primary);font-size:var(--team-font-size-sm);font-weight:700}.step-content,.result-content{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:44px}.symbol{width:70px;height:70px;object-fit:cover;object-position:50% 22%;border-radius:12px}.step-content h2,.result-content h2{font-size:18px}.step-content p{font-size:12px;font-weight:700}.chips{width:100%;display:flex;flex-wrap:wrap;gap:9px;justify-content:center}.chip{padding:5px 13px;border:1px solid var(--team-color-primary);border-radius:999px;background:#fff;color:var(--team-color-primary-dark);font-size:12px}.chip.selected{background:var(--team-color-primary);color:#fff}.calendar{width:min(100%,330px);padding:18px 16px;border:var(--team-border-default);border-radius:16px;background:#fff;box-shadow:0 8px 24px #203d3510}.calendar-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.calendar-header button{width:32px;height:32px;border:0;border-radius:50%;background:#f3f5f4;font-size:28px;line-height:1;color:var(--team-color-gray-700)}.calendar-weekdays,.calendar-days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.calendar-weekdays{margin-bottom:7px;color:var(--team-color-gray-600);font-size:11px}.calendar-weekdays span:first-child{color:var(--team-color-danger)}.calendar-days{row-gap:5px}.calendar-day{height:36px;display:grid;place-items:center}.calendar-day button{width:32px;height:32px;border:0;border-radius:50%;background:transparent;font-size:13px}.calendar-day.selected button{background:var(--team-color-primary);color:#fff;font-weight:700}.calendar-day.disabled button{color:#c8cfcc}.selected-date{color:var(--team-color-primary-dark)}.compact{padding-top:20px}.compact h3{margin-top:28px;font-size:14px}.count{color:var(--team-color-primary)}.switch-row{width:240px;padding:10px 16px;border-radius:999px;background:#fafafa;display:flex;justify-content:space-between;font-size:12px;box-shadow:0 3px 12px #203d3510}.switch-row input{accent-color:var(--team-color-primary)}.next{margin:48px auto 8px}.error{color:var(--team-color-danger);text-align:center}.result-content{text-align:center;padding-top:20px}.success{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#cef2e4;font-size:36px}.result-content>p{color:var(--team-color-gray-600);font-size:13px}.invite-card{width:100%;padding:16px;background:#fbfaf7;text-align:left;display:grid;gap:12px}.invite-url{padding:12px;border-radius:999px;background:#fff;display:flex;justify-content:space-between;gap:8px;font-size:12px}.invite-url span{overflow:hidden;text-overflow:ellipsis}.invite-url button{border:0;background:none;color:var(--team-color-primary-dark)}
 .symbol{background-size:390px 844px;background-position:-160px -164px;border-radius:0}.symbol-1{background-image:url('/figma-assets/room-create-1.png')}.symbol-2{background-image:url('/figma-assets/room-create-2.png')}.symbol-3{background-image:url('/figma-assets/room-create-3.png')}
 </style>
