@@ -3,13 +3,17 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
+import AppButton from '../../components/common/AppButton.vue';
+import AppHeader from '../../components/common/AppHeader.vue';
+import AppState from '../../components/common/AppState.vue';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 // memberId는 회원 도메인 JWT 인증이 붙기 전까지 쿼리 파라미터로 임시 수신한다
 // (백엔드 VoteController와 동일한 사유 - SecurityContext 연동 시 교체).
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const roomId = route.params.roomId;
-const memberId = route.query.memberId;
 
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -17,6 +21,7 @@ const candidateGroups = ref([]);
 const activeGroupIndex = ref(0);
 const activeCardIndex = ref(0);
 const isSubmitting = ref(false);
+const selectedCandidateIds = ref(readSelectedCandidateIds());
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
 const activeCard = computed(() => activeGroup.value?.items[activeCardIndex.value] ?? null);
@@ -31,10 +36,21 @@ const fetchCandidates = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const res = await myAxios.get(`/rooms/${roomId}/candidates`, { params: { memberId } });
-    candidateGroups.value = res.data.data.candidateGroups;
-  } catch {
-    errorMessage.value = '후보 카드를 불러오지 못했습니다.';
+    if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
+    candidateGroups.value = [{
+      keywordId: 'all',
+      keywordName: '후보 관광지',
+      items: (tally.candidates ?? []).map((candidate) => ({
+        ...candidate,
+        candidateId: candidate.candidateId,
+        title: `관광지 후보 ${candidate.displayOrder}`,
+        overview: `관광지 ID ${candidate.touristSpotId}`,
+        myVote: selectedCandidateIds.value.includes(candidate.candidateId),
+      })),
+    }];
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? error.message ?? '후보 카드를 불러오지 못했습니다.';
   } finally {
     isLoading.value = false;
   }
@@ -61,11 +77,15 @@ const toggleVote = async () => {
   const card = activeCard.value;
   try {
     if (card.myVote) {
-      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`, { params: { memberId } });
+      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`, { params: { memberId: authStore.user.id } });
     } else {
-      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null, { params: { memberId } });
+      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null, { params: { memberId: authStore.user.id } });
     }
     card.myVote = !card.myVote;
+    selectedCandidateIds.value = card.myVote
+      ? [...selectedCandidateIds.value, card.candidateId]
+      : selectedCandidateIds.value.filter((id) => id !== card.candidateId);
+    sessionStorage.setItem(`selectedCandidates:${roomId}`, JSON.stringify(selectedCandidateIds.value));
   } catch {
     errorMessage.value = '투표 처리에 실패했습니다.';
   } finally {
@@ -77,8 +97,8 @@ const completeVoting = async () => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId } });
-    router.push({ name: 'vote-status-show', params: { roomId }, query: { memberId } });
+    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });
+    router.push({ name: 'vote-status-show', params: { roomId } });
   } catch {
     errorMessage.value = '선택 완료 처리에 실패했습니다.';
   } finally {
@@ -86,18 +106,24 @@ const completeVoting = async () => {
   }
 };
 
+function readSelectedCandidateIds() {
+  try {
+    return JSON.parse(sessionStorage.getItem(`selectedCandidates:${roomId}`) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
 onMounted(fetchCandidates);
 </script>
 
 <template>
   <div class="page">
-    <header class="page-header">
-      <button class="back-button" type="button" aria-label="뒤로가기" @click="router.back()">‹</button>
-    </header>
+    <AppHeader @back="router.back()" />
 
-    <div v-if="isLoading" class="state-message">불러오는 중...</div>
-    <div v-else-if="errorMessage" class="state-message error">{{ errorMessage }}</div>
-    <div v-else-if="candidateGroups.length === 0" class="state-message">아직 준비된 후보 카드가 없습니다.</div>
+    <AppState v-if="isLoading" type="loading" message="후보 카드를 불러오는 중입니다." />
+    <AppState v-else-if="errorMessage" type="error" :message="errorMessage" @retry="fetchCandidates" />
+    <AppState v-else-if="candidateGroups.length === 0" message="아직 준비된 후보 카드가 없습니다." />
 
     <template v-else>
       <div class="intro">
@@ -172,9 +198,9 @@ onMounted(fetchCandidates);
         <p class="select-count">{{ totalSelectedCount }}장 선택</p>
       </div>
 
-      <button class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
+      <AppButton size="large" block :loading="isSubmitting" @click="completeVoting">
         투표완료
-      </button>
+      </AppButton>
     </template>
 
     <BottomNav />
@@ -190,31 +216,6 @@ onMounted(fetchCandidates);
   gap: 12px;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-}
-
-.back-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--team-color-black);
-  line-height: 1;
-}
-
-.state-message {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--team-color-gray-600);
-  text-align: center;
-}
-
-.state-message.error {
-  color: var(--team-color-danger);
-}
 
 .intro .room-label {
   color: var(--team-color-primary);
@@ -355,16 +356,4 @@ onMounted(fetchCandidates);
   font-size: 0.875rem;
 }
 
-.complete-button {
-  border: none;
-  border-radius: var(--team-radius);
-  background: var(--team-color-primary);
-  color: var(--team-color-white);
-  padding: 14px;
-  font-weight: 700;
-}
-
-.complete-button:disabled {
-  opacity: 0.6;
-}
 </style>

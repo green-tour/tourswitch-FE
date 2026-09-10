@@ -13,8 +13,7 @@ dist-ssr
 *.local
 
 .env
-public
-src/assets
+# 정적 디자인 자산은 소스와 함께 버전 관리한다.
 
 # Editor directories and files
 .vscode/*
