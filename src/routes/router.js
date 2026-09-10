@@ -13,6 +13,11 @@ const routes = [
     name: 'vote-status-show',
     component: () => import('../pages/vote/VoteStatusShow.vue'),
   },
+  {
+    path: '/courses/:courseId/spots/:courseSpotId/change',
+    name: 'course-spot-change',
+    component: () => import('../pages/course/CourseChangeShow.vue'),
+  },
 ];
 
 const router = createRouter({
