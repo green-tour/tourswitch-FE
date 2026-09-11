@@ -16,7 +16,15 @@ const errorMessage = ref('');
 const fetchPlace = async () => {
   isLoading.value = true;
   errorMessage.value = '';
-  try { place.value = (await myAxios.get(`/places/${route.params.placeId}`)).data.data; }
+  try {
+    place.value = (await myAxios.get(`/places/${route.params.placeId}`)).data.data;
+    localStorage.setItem('recentViewedPlace', JSON.stringify({
+      id: route.params.placeId,
+      name: place.value.name,
+      imageUrl: place.value.imageUrl ?? '/figma-assets/seoul-forest.png',
+      regionName: place.value.regionName ?? '',
+    }));
+  }
   catch (error) { errorMessage.value = error.response?.data?.message ?? '관광지 정보를 불러오지 못했습니다.'; }
   finally { isLoading.value = false; }
 };

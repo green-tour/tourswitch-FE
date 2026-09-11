@@ -3,13 +3,25 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faHouse, faMapLocationDot, faClock, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { useAuthStore } from '../store/auth/useAuthStore';
 
 // 홈/지도/프로필 화면은 아직 다른 담당자 몫이라 라우트가 없다. 지금은 다섯 아이콘을
 // 전부 보여주되 실제로 이동 가능한 건 "투표" 탭뿐이다 - 나머지는 그 화면이 생기면 연결한다.
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const isVoteActive = computed(() => route.name === 'vote-show' || route.name === 'vote-status-show');
+const activeVoteRoomId = computed(() => {
+  try {
+    const memberId = authStore.user?.id;
+    if (!memberId) return null;
+    const room = JSON.parse(localStorage.getItem(`activeTravelRoom:${memberId}`) ?? 'null');
+    return room?.roomId ?? null;
+  } catch {
+    return null;
+  }
+});
 
 const items = [
   { key: 'home', label: '홈', icon: faHouse, routeName: 'home-show' },
@@ -23,6 +35,14 @@ const isActive = (item) =>
   (item.key === 'vote' && isVoteActive.value) ||
   (item.key === 'schedule' && String(route.name).startsWith('history-')) ||
   route.name === item.routeName;
+
+const navigate = (item) => {
+  if (item.key === 'vote' && activeVoteRoomId.value) {
+    router.push({ name: 'vote-show', params: { roomId: activeVoteRoomId.value } });
+    return;
+  }
+  if (item.routeName) router.push({ name: item.routeName });
+};
 </script>
 
 <template>
@@ -32,9 +52,9 @@ const isActive = (item) =>
       :key="item.key"
       class="nav-item"
       :class="{ active: isActive(item) }"
-      :disabled="!item.routeName && item.key !== 'vote'"
+      :disabled="(!item.routeName && item.key !== 'vote') || (item.key === 'vote' && !activeVoteRoomId)"
       type="button"
-      @click="item.routeName && router.push({ name: item.routeName })"
+      @click="navigate(item)"
     >
       <FontAwesomeIcon class="icon" :icon="item.icon" fixed-width aria-hidden="true" />
       <span class="label">{{ item.label }}</span>
@@ -45,6 +65,7 @@ const isActive = (item) =>
 <style scoped>
 .bottom-nav {
   position: sticky;
+  z-index: 10;
   bottom: 0;
   left: 0;
   right: 0;

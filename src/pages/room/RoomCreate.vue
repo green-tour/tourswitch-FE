@@ -100,12 +100,20 @@ const next = async () => {
       includesShopping: form.options.shopping,
     }, { params: { memberId: authStore.user.id } });
     const room = response.data.data;
+    const categoryNames = keywords
+      .filter((keyword) => form.keywordIds.includes(keyword.id))
+      .map((keyword) => keyword.name);
     result.value = { ...room, inviteUrl: `${window.location.origin}/invite/${room.inviteToken}` };
     localStorage.setItem(`activeTravelRoom:${authStore.user.id}`, JSON.stringify({
       roomId: room.roomId,
       roomName: room.roomName,
       travelDate: room.travelDate,
+      categoryNames,
     }));
+    localStorage.setItem(
+      `roomCategories:${room.roomId}`,
+      JSON.stringify(categoryNames),
+    );
     step.value = 4;
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '여행방을 만들지 못했습니다.';
