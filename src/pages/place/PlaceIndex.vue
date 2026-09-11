@@ -7,6 +7,7 @@ import VoteRoomButton from '../../components/common/VoteRoomButton.vue';
 import AppState from '../../components/common/AppState.vue';
 import HomeCategoryBar from '../../components/home/HomeCategoryBar.vue';
 import FilteredPlaceCard from '../../components/place/FilteredPlaceCard.vue';
+import { PLACE_CATEGORY_CODES } from '../../constants/placeCategories';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,7 +15,6 @@ const places = ref([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const category = computed(() => String(route.query.category || '전체'));
-const categoryCode = { 역사: 'HISTORY', '문화·예술': 'CULTURE', 자연: 'NATURE', 산책: 'WALK', 야경: 'NIGHT' };
 
 const selectCategory = (name) => {
   if (name === '전체') router.push({ name: 'home-show', query: route.query.preview ? { preview: '1' } : {} });
@@ -25,7 +25,8 @@ const fetchPlaces = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const { data } = await myAxios.get('/places', { params: { keywordCodes: [categoryCode[category.value]], page: 1, size: 20 } });
+    const categoryCode = PLACE_CATEGORY_CODES[category.value];
+    const { data } = await myAxios.get('/places', { params: { ...(categoryCode ? { keywordCodes: [categoryCode] } : {}), page: 1, size: 20 } });
     places.value = data.data.items ?? [];
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '관광지 목록을 불러오지 못했습니다.';

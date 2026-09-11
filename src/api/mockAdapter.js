@@ -1,9 +1,9 @@
 const places = [
-  { id: 'place-1', name: '서울숲', summary: '35만 평 도심 속 숲, 사슴 방사장과 나비 정원을 지나 서울숲 카페거리까지 이어져요.', imageUrl: '/figma-assets/seoul-forest.png', categoryCodes: ['NATURE', 'WALK'], accessibility: { wheelchair: 'AVAILABLE', stroller: 'AVAILABLE' }, congestion: { level: '여유' } },
-  { id: 'place-2', name: '북촌 한옥마을', summary: '서울의 오래된 골목을 천천히 걸어보세요.', imageUrl: null, categoryCodes: ['HISTORY', 'WALK'], accessibility: {}, congestion: { level: '보통' } },
-  { id: 'place-3', name: '석촌호수', summary: '호수를 따라 걷기 좋은 산책 명소예요.', imageUrl: null, categoryCodes: ['NATURE', 'WALK'], accessibility: {}, congestion: { level: '여유' } },
-  { id: 'place-4', name: '동대문 DDP', summary: '전시와 야경을 함께 즐길 수 있어요.', imageUrl: null, categoryCodes: ['CULTURE', 'NIGHT'], accessibility: {}, congestion: { level: '보통' } },
-  { id: 'place-5', name: '남산 서울타워', summary: '서울 도심을 한눈에 바라보세요.', imageUrl: null, categoryCodes: ['NATURE', 'NIGHT'], accessibility: {}, congestion: { level: '혼잡' } },
+  { id: 'place-1', name: '서울숲', summary: '35만 평 도심 속 숲, 사슴 방사장과 나비 정원을 지나 서울숲 카페거리까지 이어져요.', imageUrl: '/figma-assets/seoul-forest.png', categoryCodes: ['CITY_PARK', 'NATURE_MOUNTAIN'], accessibility: { wheelchair: 'AVAILABLE', stroller: 'AVAILABLE' }, congestion: { level: '여유' } },
+  { id: 'place-2', name: '북촌 한옥마을', summary: '서울의 오래된 골목을 천천히 걸어보세요.', imageUrl: null, categoryCodes: ['HISTORICAL_RELIC', 'STREET_TRAIL'], accessibility: {}, congestion: { level: '보통' } },
+  { id: 'place-3', name: '석촌호수', summary: '호수를 따라 걷기 좋은 산책 명소예요.', imageUrl: null, categoryCodes: ['CITY_PARK', 'NATURE_MOUNTAIN'], accessibility: {}, congestion: { level: '여유' } },
+  { id: 'place-4', name: '동대문 DDP', summary: '전시와 공연을 함께 즐길 수 있어요.', imageUrl: null, categoryCodes: ['EXHIBITION_MUSEUM', 'PERFORMANCE'], accessibility: {}, congestion: { level: '보통' } },
+  { id: 'place-5', name: '남산 서울타워', summary: '서울 도심을 한눈에 바라보세요.', imageUrl: null, categoryCodes: ['LANDMARK_VIEW', 'NATURE_MOUNTAIN'], accessibility: {}, congestion: { level: '혼잡' } },
 ];
 
 const response = (config, data) => Promise.resolve({ data: { code: '00', message: '정상 처리되었습니다.', data }, status: 200, statusText: 'OK', headers: {}, config });

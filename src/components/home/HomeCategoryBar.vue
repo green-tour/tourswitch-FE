@@ -1,20 +1,14 @@
 <script setup>
+import { PLACE_CATEGORIES } from '../../constants/placeCategories';
+
 const props = defineProps({ selected: { type: String, default: '전체' } });
 const emit = defineEmits(['select']);
-const categories = [
-  { name: '전체', image: '/figma-assets/category-all.png' },
-  { name: '역사', image: '/figma-assets/category-history.png' },
-  { name: '문화·예술', image: '/figma-assets/category-culture.png' },
-  { name: '자연', image: '/figma-assets/category-nature.png' },
-  { name: '산책', image: '/figma-assets/category-walk.png' },
-  { name: '야경', image: '/figma-assets/category-culture.png' },
-]
 </script>
 
 <template>
   <div class="category-bar" aria-label="관광지 카테고리">
     <button
-      v-for="category in categories"
+      v-for="category in PLACE_CATEGORIES"
       :key="category.name"
       :class="{ selected: props.selected === category.name }"
       :aria-pressed="props.selected === category.name"
@@ -28,19 +22,19 @@ const categories = [
 
 <style scoped>
   .category-bar {
-    height: 100px;
+    height: 116px;
     display: flex;
-    gap: 18px;
+    gap: 12px;
     overflow-x: auto;
-    padding: 15px 25px;
+    padding: 15px 20px;
     scrollbar-width: none
   }
   .category-bar::-webkit-scrollbar {
     display:none
   }
   .category-bar button {
-    width: 50px;
-    flex: 0 0 50px;
+    width: 64px;
+    flex: 0 0 64px;
     padding: 0;
     border: 0;
     background: none;
@@ -63,8 +57,12 @@ const categories = [
   .category-bar small {
     display: block;
     margin-top: 5px;
-    font-size: 12px;
-    white-space: nowrap
+    min-height: 30px;
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
   .category-bar button.selected:not(:first-child) > span {
     background:#63d3d6
