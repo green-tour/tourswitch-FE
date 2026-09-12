@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import BottomNav from '../../components/BottomNav.vue';
 import VoteRoomButton from '../../components/common/VoteRoomButton.vue';
@@ -13,7 +13,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const menuOpen = ref(false);
-const selectedCategory = ref('전체');
+const selectedCategory = ref(String(route.query.category || '전체'));
 const activeTravelRoom = ref(null);
 const displayedPlaces = ref([]);
 const isPlacesLoading = ref(false);
@@ -27,6 +27,7 @@ const homePlaces = [
   { id: 'place-7', name: '조계사', regionName: '종로구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['RELIGIOUS_SITE'] },
 ];
 const isPreview = computed(() => route.query.preview === '1' || sessionStorage.getItem('previewMode') === 'true');
+const isCategoryListing = computed(() => route.query.category !== undefined);
 const isLoggedIn = computed(() => route.query.auth === 'guest' ? false : authStore.isAuthenticated || isPreview.value);
 const hasActiveVoteRoom = computed(() => {
   const room = activeTravelRoom.value;
@@ -35,9 +36,13 @@ const hasActiveVoteRoom = computed(() => {
 const go = (name) => { menuOpen.value = false; router.push({ name }); };
 const logout = async () => { await authStore.logout(); menuOpen.value = false; };
 const selectCategory = (name) => {
-  selectedCategory.value = name;
-  fetchPlaces();
+  router.replace({ name: 'home-show', query: { ...route.query, category: name } });
 };
+
+watch(() => route.query.category, (category) => {
+  selectedCategory.value = String(category || '전체');
+  fetchPlaces();
+});
 
 const formatTravelDate = (date) => {
   if (!date) return '';
@@ -62,6 +67,10 @@ onMounted(async () => {
 
 function fetchPlaces() {
   const categoryCode = PLACE_CATEGORY_CODES[selectedCategory.value];
+  if (isCategoryListing.value && selectedCategory.value === '전체') {
+    displayedPlaces.value = homePlaces;
+    return;
+  }
   displayedPlaces.value = categoryCode
     ? homePlaces.filter((place) => place.categoryCodes.includes(categoryCode))
     : homePlaces.filter((place) => place.congestion.level === '여유');
@@ -87,11 +96,11 @@ function readActiveTravelRoom() {
 
 <template>
   <main class="home-page">
-    <header class="home-header"><button class="home-logo" type="button" aria-label="투어 스위치 메인으로 이동" @click="router.push({ name: 'home-show' })">투어 스위치</button><div><button type="button" aria-label="검색">⌕</button><button type="button" aria-label="메뉴" @click="menuOpen = true">☰</button></div></header>
+    <header class="home-header"><button class="home-logo" type="button" aria-label="투어 스위치 메인으로 이동" @click="router.push({ name: 'home-show' })">투어 스위치</button><div><button type="button" aria-label="메뉴" @click="menuOpen = true">☰</button></div></header>
     <HomeCategoryBar :selected="selectedCategory" @select="selectCategory" />
-    <section v-if="hasActiveVoteRoom" class="ongoing"><span class="ongoing-dday">{{ getDday(activeTravelRoom.travelDate) }}</span><span class="ongoing-status">투표 중</span><strong>{{ activeTravelRoom.roomName }}</strong><span class="ongoing-date">{{ formatTravelDate(activeTravelRoom.travelDate) }}</span><small>지역&nbsp; 서울</small><small>참여자&nbsp; 1 / 1명 완료</small><button class="ongoing-action" type="button" @click="router.push({ name: 'vote-show', params: { roomId: activeTravelRoom.roomId } })">이어서 하기</button></section>
-    <section class="home-section"><h2>지금 서울은?</h2><button class="map-preview" type="button"><strong>혼잡도 지도</strong></button><div class="legend"><span>혼잡도 범례</span><i class="easy"></i>여유<i class="normal"></i>보통<i class="busy"></i>혼잡</div></section>
-    <section class="home-section relaxed-section"><h2>{{ selectedCategory === '전체' ? '여유로운 관광지' : `${selectedCategory} 관광지` }}</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">해당 카테고리의 관광지 정보가 없습니다.</p></section>
+    <section v-if="!isCategoryListing && hasActiveVoteRoom" class="ongoing"><span class="ongoing-dday">{{ getDday(activeTravelRoom.travelDate) }}</span><span class="ongoing-status">투표 중</span><strong>{{ activeTravelRoom.roomName }}</strong><span class="ongoing-date">{{ formatTravelDate(activeTravelRoom.travelDate) }}</span><small>지역&nbsp; 서울</small><small>참여자&nbsp; 1 / 1명 완료</small><button class="ongoing-action" type="button" @click="router.push({ name: 'vote-show', params: { roomId: activeTravelRoom.roomId } })">이어서 하기</button></section>
+    <section v-if="isCategoryListing" class="home-section relaxed-section"><h2>{{ selectedCategory === '전체' ? '전체 관광지' : `${selectedCategory} 관광지` }}</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">해당 카테고리의 관광지 정보가 없습니다.</p></section>
+    <template v-else><section class="home-section"><h2>지금 서울은?</h2><button class="map-preview" type="button"><strong>혼잡도 지도</strong></button><div class="legend"><span>혼잡도 범례</span><i class="easy"></i>여유<i class="normal"></i>보통<i class="busy"></i>혼잡</div></section><section class="home-section relaxed-section"><h2>여유로운 관광지</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">현재 여유로운 관광지 정보가 없습니다.</p></section></template>
     <VoteRoomButton class="create-fab" @click="go('room-create')" /><BottomNav />
     <Transition name="menu-drawer"><HomeMenuDrawer v-if="menuOpen" :logged-in="isLoggedIn" :nickname="authStore.user?.nickname" :avatar-url="authStore.user?.avatarUrl" @close="menuOpen = false" @navigate="go" @navigate-place="(placeId) => { menuOpen = false; router.push({ name: 'place-show', params: { placeId } }); }" @logout="logout" /></Transition>
   </main>
