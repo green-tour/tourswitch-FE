@@ -4,7 +4,8 @@ import { useRoute } from 'vue-router';
 import { preserveReturnTo } from '../../util/oauth';
 
 const route = useRoute();
-const returnTo = computed(() => route.query.returnTo ?? '/rooms/create');
+// 일반 로그인은 홈으로 이동하고, 보호된 화면에서 진입한 경우에만 원래 경로로 복귀한다.
+const returnTo = computed(() => route.query.returnTo ?? '/');
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
 const startKakaoLogin = () => {
