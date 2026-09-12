@@ -76,6 +76,12 @@ const routes = [
     component: () => import('../pages/vote/VoteStatusShow.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/rooms/:roomId/additional-vote',
+    name: 'additional-vote-show',
+    component: () => import('../pages/vote/AdditionalVoteShow.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

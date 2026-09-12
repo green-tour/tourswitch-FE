@@ -11,7 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
-const isVoteActive = computed(() => route.name === 'vote-show' || route.name === 'vote-status-show');
+const isVoteActive = computed(() => ['vote-show', 'additional-vote-show', 'vote-status-show'].includes(route.name));
 const activeVoteRoomId = computed(() => {
   try {
     const memberId = authStore.user?.id;

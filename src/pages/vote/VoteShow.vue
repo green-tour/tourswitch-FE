@@ -15,23 +15,33 @@ const roomId = route.params.roomId;
 
 const isLoading = ref(true);
 const errorMessage = ref('');
+const roomStatus = ref('');
 const candidateGroups = ref([]);
 const activeGroupIndex = ref(0);
 const activeCardIndex = ref(0);
 const isSubmitting = ref(false);
 const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
+const activeCategoryId = ref('all');
+const additionalOptions = ref(readAdditionalOptions());
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
-const activeCard = computed(() => activeGroup.value?.items[activeCardIndex.value] ?? null);
+const filterCategories = computed(() => [{ id: 'all', name: '전체' }, ...roomCategories.value]);
+const filteredCandidates = computed(() => {
+  const items = activeGroup.value?.items ?? [];
+  if (activeCategoryId.value === 'all') return items;
+  return items.filter((item) => String(item.keywordId) === String(activeCategoryId.value));
+});
+const activeCard = computed(() => filteredCandidates.value[activeCardIndex.value] ?? null);
 const cardTrackStyle = computed(() => ({ transform: `translateX(${-activeCardIndex.value * 245}px)` }));
-const displayedCategories = computed(() => roomCategories.value.length ? roomCategories.value : ['관광지']);
 const totalSelectedCount = computed(() =>
   candidateGroups.value.reduce(
     (count, group) => count + group.items.filter((item) => item.myVote).length,
     0,
   ),
 );
+const hasAdditionalVote = computed(() => Object.values(additionalOptions.value).some(Boolean));
+const isVoting = computed(() => roomStatus.value === 'VOTING');
 
 const fetchCandidates = async () => {
   isLoading.value = true;
@@ -39,6 +49,11 @@ const fetchCandidates = async () => {
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
+    roomStatus.value = tally.roomStatus;
+    if (roomStatus.value && !isVoting.value) {
+      router.replace({ name: 'vote-status-show', params: { roomId } });
+      return;
+    }
     const candidates = tally.candidates ?? [];
     candidateGroups.value = candidates.length ? [{
       keywordId: 'all',
@@ -49,6 +64,7 @@ const fetchCandidates = async () => {
         title: candidate.title ?? candidate.place?.name ?? `관광지 후보 ${candidate.displayOrder}`,
         overview: candidate.overview ?? candidate.place?.overview ?? '',
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
+        keywordId: candidate.keywordId ?? candidate.keywordName ?? candidate.place?.keywordId ?? candidate.place?.keywordName ?? null,
         myVote: selectedCandidateIds.value.includes(candidate.candidateId ?? candidate.place?.id),
       })),
     }] : [];
@@ -66,12 +82,21 @@ const showPrevCard = () => {
 };
 
 const showNextCard = () => {
-  if (activeGroup.value && activeCardIndex.value < activeGroup.value.items.length - 1) {
+  if (activeCardIndex.value < filteredCandidates.value.length - 1) {
     activeCardIndex.value += 1;
   }
 };
 
+const selectCategory = (categoryId) => {
+  activeCategoryId.value = categoryId;
+  activeCardIndex.value = 0;
+};
+
 const toggleVote = async () => {
+  if (!isVoting.value) {
+    router.replace({ name: 'vote-status-show', params: { roomId } });
+    return;
+  }
   if (!activeCard.value || isSubmitting.value) return;
   isSubmitting.value = true;
   const card = activeCard.value;
@@ -86,7 +111,11 @@ const toggleVote = async () => {
       ? [...selectedCandidateIds.value, card.candidateId]
       : selectedCandidateIds.value.filter((id) => id !== card.candidateId);
     sessionStorage.setItem(`selectedCandidates:${roomId}`, JSON.stringify(selectedCandidateIds.value));
-  } catch {
+  } catch (error) {
+    if (error.response?.status === 409) {
+      router.replace({ name: 'vote-status-show', params: { roomId } });
+      return;
+    }
     errorMessage.value = '투표 처리에 실패했습니다.';
   } finally {
     isSubmitting.value = false;
@@ -95,11 +124,23 @@ const toggleVote = async () => {
 
 const completeVoting = async () => {
   if (isSubmitting.value) return;
+  if (!isVoting.value) {
+    router.replace({ name: 'vote-status-show', params: { roomId } });
+    return;
+  }
+  if (hasAdditionalVote.value) {
+    router.push({ name: 'additional-vote-show', params: { roomId } });
+    return;
+  }
   isSubmitting.value = true;
   try {
     await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });
     router.push({ name: 'vote-status-show', params: { roomId } });
-  } catch {
+  } catch (error) {
+    if (error.response?.status === 409) {
+      router.replace({ name: 'vote-status-show', params: { roomId } });
+      return;
+    }
     errorMessage.value = '선택 완료 처리에 실패했습니다.';
   } finally {
     isSubmitting.value = false;
@@ -117,9 +158,19 @@ function readSelectedCandidateIds() {
 function readRoomCategories() {
   try {
     const categories = JSON.parse(localStorage.getItem(`roomCategories:${roomId}`) ?? '[]');
-    return Array.isArray(categories) ? categories : [];
+    return Array.isArray(categories)
+      ? categories.map((category) => typeof category === 'string' ? { id: category, name: category } : category)
+      : [];
   } catch {
     return [];
+  }
+}
+
+function readAdditionalOptions() {
+  try {
+    return JSON.parse(localStorage.getItem(`roomAdditionalOptions:${roomId}`) ?? '{}');
+  } catch {
+    return {};
   }
 }
 
@@ -139,17 +190,17 @@ onMounted(fetchCandidates);
       </div>
 
       <div class="keyword-chips" aria-label="선택한 여행 카테고리">
-        <span v-for="category in displayedCategories" :key="category" class="chip active">{{ category }}</span>
+        <button v-for="category in filterCategories" :key="category.id" class="chip" :class="{ active: activeCategoryId === category.id }" type="button" @click="selectCategory(category.id)">{{ category.name }}</button>
       </div>
 
-      <p v-if="activeGroup" class="progress">{{ activeCardIndex + 1 }} / {{ activeGroup.items.length }}</p>
+      <p v-if="activeGroup" class="progress">{{ filteredCandidates.length ? activeCardIndex + 1 : 0 }} / {{ filteredCandidates.length }}</p>
 
       <div v-if="activeCard" class="card-area">
         <div class="card-viewport" aria-live="polite">
           <div class="card-track" :style="cardTrackStyle">
-            <article v-for="card in activeGroup.items" :key="card.candidateId" class="candidate-card">
+            <article v-for="card in filteredCandidates" :key="card.candidateId" class="candidate-card">
               <img v-if="card.imageUrl" :src="card.imageUrl" :alt="card.title" class="card-image" />
-              <img v-else src="/figma-assets/seoul-forest.png" alt="" class="card-image" aria-hidden="true" />
+              <div v-else class="card-image placeholder" aria-hidden="true"></div>
 
               <div class="card-body">
                 <h2>{{ card.title }}</h2>
@@ -175,14 +226,16 @@ onMounted(fetchCandidates);
           class="nav-arrow right"
           type="button"
           aria-label="다음 카드"
-          :disabled="!activeGroup || activeCardIndex === activeGroup.items.length - 1"
+          :disabled="activeCardIndex === filteredCandidates.length - 1"
           @click="showNextCard"
         >
           <span aria-hidden="true">›</span>
         </button>
       </div>
 
-      <div class="select-area">
+      <p v-else class="category-empty">이 카테고리에 해당하는 후보 카드가 없습니다.</p>
+
+      <div v-if="activeCard" class="select-area">
         <button
           class="heart-button"
           type="button"
@@ -196,8 +249,8 @@ onMounted(fetchCandidates);
         <p class="select-count">{{ totalSelectedCount }}장 선택</p>
       </div>
 
-      <button class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
-        {{ isSubmitting ? '처리 중' : '투표완료' }}
+      <button v-if="activeCard" class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
+        {{ isSubmitting ? '처리 중' : hasAdditionalVote ? '다음' : '투표완료' }}
       </button>
     </main>
 
@@ -262,6 +315,13 @@ onMounted(fetchCandidates);
   color: var(--team-color-white);
 }
 
+.chip:hover,
+.chip:active {
+  background: #00bfc4;
+  border-color: #00bfc4;
+  color: #fff;
+}
+
 .progress {
   margin-top: 30px;
   text-align: center;
@@ -274,6 +334,15 @@ onMounted(fetchCandidates);
   position: relative;
   height: 310px;
   margin-top: 24px;
+}
+
+.category-empty {
+  min-height: 310px;
+  display: grid;
+  place-items: center;
+  color: var(--team-color-gray-600);
+  font-size: .8125rem;
+  text-align: center;
 }
 
 .card-viewport {
@@ -333,6 +402,12 @@ onMounted(fetchCandidates);
   object-fit: cover;
 }
 
+.card-image.placeholder {
+  background: linear-gradient(110deg, #e7e7e7 25%, #f2f2f2 37%, #e7e7e7 63%);
+  background-size: 200% 100%;
+  animation: skeleton 1.35s ease-in-out infinite;
+}
+
 .card-body {
   padding: 11px 13px;
   display: flex;
@@ -379,16 +454,23 @@ onMounted(fetchCandidates);
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  border: none;
-  background: var(--team-color-danger);
-  color: var(--team-color-white);
+  border: 2px solid var(--team-color-danger);
+  background: #fff;
+  color: var(--team-color-danger);
   font-size: 2rem;
   line-height: 1;
-  opacity: .95;
+  transition: background-color .18s ease, color .18s ease, transform .18s ease;
 }
 
+.heart-button:hover,
+.heart-button:active,
 .heart-button.selected {
-  opacity: 1;
+  background: var(--team-color-danger);
+  color: #fff;
+}
+
+.heart-button:active {
+  transform: scale(.95);
 }
 
 .select-count {
@@ -422,5 +504,10 @@ onMounted(fetchCandidates);
 
 @media (prefers-reduced-motion: reduce) {
   .card-track { transition: none; }
+  .card-image.placeholder { animation: none; }
+}
+
+@keyframes skeleton {
+  to { background-position: -200% 0; }
 }
 </style>
