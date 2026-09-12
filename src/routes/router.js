@@ -82,6 +82,12 @@ const routes = [
     component: () => import('../pages/vote/AdditionalVoteShow.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/rooms/:roomId/course',
+    name: 'course-show',
+    component: () => import('../pages/course/CourseShow.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
