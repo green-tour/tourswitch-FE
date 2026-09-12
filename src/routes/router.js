@@ -15,22 +15,11 @@ const routes = [
     component: () => import('../pages/preview/PreviewIndex.vue'),
   },
   {
-<<<<<<< HEAD
     path: '/courses/:courseId/spots/:courseSpotId/change',
     name: 'course-spot-change',
     component: () => import('../pages/course/CourseChangeShow.vue'),
   },
-];
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
-
-router.onError((error) => {
-  if (/Loading chunk|Failed to fetch dynamically imported module/.test(error.message)) {
-    window.location.reload();
-=======
+  {
     path: '/places',
     name: 'place-index',
     component: () => import('../pages/place/PlaceIndex.vue'),
@@ -103,7 +92,6 @@ router.beforeEach(async (to) => {
   if (import.meta.env.DEV && (to.query.preview === '1' || sessionStorage.getItem('previewMode') === 'true')) {
     sessionStorage.setItem('previewMode', 'true');
     return true;
->>>>>>> 6a0e62f2a924cb9caa61be37e35f124ac7133106
   }
   if (!to.meta.requiresAuth) return true;
   const authStore = useAuthStore();

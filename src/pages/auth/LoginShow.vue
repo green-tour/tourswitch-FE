@@ -9,7 +9,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, 
 
 const startKakaoLogin = () => {
   preserveReturnTo(returnTo.value);
-  window.location.assign(`${apiBaseUrl}/auth/login`);
+  window.location.assign(`${apiBaseUrl}/auth/oauth2/authorization/kakao`);
 };
 </script>
 
