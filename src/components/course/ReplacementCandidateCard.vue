@@ -16,7 +16,8 @@ const gradeClass = (grade) => {
 
 <template>
   <button class="candidate-card" :class="{ selected }" type="button" @click="$emit('select')">
-    <div class="image-placeholder" aria-hidden="true">관광지 이미지</div>
+    <img v-if="candidate.imageUrl" class="candidate-image" :src="candidate.imageUrl" :alt="candidate.title" />
+    <div v-else class="image-placeholder" aria-hidden="true">관광지 이미지 없음</div>
     <div class="card-body">
       <div class="title-row">
         <h3>{{ candidate.title }}</h3>
@@ -36,7 +37,9 @@ const gradeClass = (grade) => {
 <style scoped>
 .candidate-card { width: 100%; overflow: hidden; border: 2px solid transparent; border-radius: var(--team-radius-card); background: var(--team-color-white); box-shadow: 0 5px 18px rgb(23 33 31 / 8%); text-align: left; }
 .candidate-card.selected { border-color: var(--team-color-primary); }
-.image-placeholder { height: 118px; display: grid; place-items: center; background: var(--team-color-gray-200); color: var(--team-color-gray-600); font-size: .75rem; }
+.candidate-image, .image-placeholder { width: 100%; height: 118px; }
+.candidate-image { display: block; object-fit: cover; }
+.image-placeholder { display: grid; place-items: center; background: var(--team-color-gray-200); color: var(--team-color-gray-600); font-size: .75rem; }
 .card-body { padding: 14px; }
 .title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 h3 { font-size: 1rem; }

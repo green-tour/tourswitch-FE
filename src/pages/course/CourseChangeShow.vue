@@ -5,12 +5,15 @@ import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
 import RegionFilter from '../../components/course/RegionFilter.vue';
 import ReplacementCandidateCard from '../../components/course/ReplacementCandidateCard.vue';
+import { useAuthStore } from '../../store/auth/useAuthStore';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const courseId = route.params.courseId;
 const courseSpotId = route.params.courseSpotId;
-const memberId = route.query.memberId;
+const roomId = route.query.roomId;
+const memberId = computed(() => authStore.user?.id);
 
 const step = ref('region');
 const regions = ref([]);
@@ -20,6 +23,7 @@ const dongId = ref('');
 const candidates = ref([]);
 const selectedCandidate = ref(null);
 const replacedCandidate = ref(null);
+const changedCourse = ref(null);
 const radiusMeters = ref(3000);
 const isLoading = ref(false);
 const isLoadingDongs = ref(false);
@@ -64,7 +68,7 @@ const fetchCandidates = async () => {
   selectedCandidate.value = null;
   try {
     const response = await myAxios.get(`/courses/${courseId}/replacement-candidates`, {
-      params: { administrativeDongId: dongId.value, memberId },
+      params: { administrativeDongId: dongId.value, memberId: memberId.value },
     });
     radiusMeters.value = response.data.data.radiusMeters;
     candidates.value = response.data.data.candidates;
@@ -85,11 +89,17 @@ const replaceSpot = async () => {
       `/courses/${courseId}/spots/${courseSpotId}/replacement`,
       {
         administrativeDongId: Number(dongId.value),
-        replacementTouristSpotId: selectedCandidate.value.touristSpotId,
+        replacementContentId: selectedCandidate.value.contentId,
       },
-      { params: { memberId } },
+      { params: { memberId: memberId.value } },
     );
     replacedCandidate.value = selectedCandidate.value;
+    if (roomId) {
+      const response = await myAxios.get(`/rooms/${roomId}/course`, {
+        params: { memberId: memberId.value },
+      });
+      changedCourse.value = response.data.data;
+    }
     step.value = 'complete';
   } catch (error) {
     errorMessage.value = error.response?.data?.message || '장소를 교체하지 못했습니다.';
@@ -152,9 +162,9 @@ onMounted(fetchRegions);
       <div v-if="candidates.length" class="candidate-list">
         <ReplacementCandidateCard
           v-for="candidate in candidates"
-          :key="candidate.touristSpotId"
+          :key="candidate.contentId"
           :candidate="candidate"
-          :selected="selectedCandidate?.touristSpotId === candidate.touristSpotId"
+          :selected="selectedCandidate?.contentId === candidate.contentId"
           @select="selectedCandidate = candidate"
         />
       </div>
@@ -168,16 +178,26 @@ onMounted(fetchRegions);
       </button>
     </template>
 
-    <section v-else class="complete-card">
-      <div class="check" aria-hidden="true">✓</div>
-      <h2>장소가 변경되었습니다.</h2>
-      <div class="change-summary">
-        <span>{{ originalTitle }}</span>
-        <strong>→</strong>
-        <span>{{ replacedCandidate?.title }}</span>
-      </div>
+    <template v-else>
+      <section class="complete-card">
+        <div class="check" aria-hidden="true">✓</div>
+        <h2>한 곳이 교체되었습니다.</h2>
+        <div class="change-summary">
+          <span>{{ originalTitle }}</span><strong>→</strong><span>{{ replacedCandidate?.title }}</span>
+        </div>
+      </section>
+      <section v-if="changedCourse" class="changed-course">
+        <h2>변경된 방문 순서</h2>
+        <ol>
+          <li v-for="stop in changedCourse.stops" :key="stop.id">
+            <span class="order">{{ stop.visitOrder }}</span>
+            <strong>{{ stop.spotTitleSnapshot }}</strong>
+            <span v-if="stop.isReplaced" class="replaced-label">교체됨</span>
+          </li>
+        </ol>
+      </section>
       <button class="primary-button" type="button" @click="goTodayCourse">오늘의 코스로 돌아가기</button>
-    </section>
+    </template>
 
     <BottomNav />
   </div>
@@ -204,5 +224,11 @@ onMounted(fetchRegions);
 .complete-card h2 { font-size: 1.05rem; }
 .change-summary { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 22px 0; color: var(--team-color-gray-600); font-size: .78rem; }
 .change-summary span:last-child { color: var(--team-color-primary-dark); font-weight: 700; }
+.changed-course h2 { margin-bottom: 12px; font-size: .9rem; }
+.changed-course ol { display: grid; gap: 12px; list-style: none; }
+.changed-course li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 14px; border-radius: var(--team-radius-card); background: white; box-shadow: 0 5px 18px rgb(23 33 31 / 7%); }
+.changed-course .order { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--team-color-primary); color: white; font-size: .72rem; }
+.changed-course strong { font-size: .82rem; }
+.replaced-label { padding: 6px 9px; border-radius: var(--team-radius-pill); background: #dff5ec; color: var(--team-color-primary-dark); font-size: .68rem; font-weight: 700; }
 .bottom-nav { margin-right: -16px; margin-left: -16px; }
 </style>

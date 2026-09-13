@@ -18,6 +18,7 @@ const routes = [
     path: "/courses/:courseId/spots/:courseSpotId/change",
     name: "course-spot-change",
     component: () => import("../pages/course/CourseChangeShow.vue"),
+    meta: { requiresAuth: true },
   },
   {
     path: "/places",
