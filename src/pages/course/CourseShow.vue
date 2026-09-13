@@ -22,6 +22,7 @@ const isConfirming = ref(false);
 const roomName = computed(() => readActiveRoom()?.roomName ?? '투표방(여행방)');
 const isHost = computed(() => readActiveRoom()?.hostMemberId === authStore.user?.id);
 const isConfirmed = computed(() => course.value?.status === 'CONFIRMED');
+const hasReplacement = computed(() => course.value?.stops?.some((stop) => stop.isReplaced));
 
 const readActiveRoom = () => {
   try {
@@ -58,6 +59,18 @@ const confirmCourse = async () => {
   }
 };
 
+const openReplacement = (stop) => {
+  router.push({
+    name: 'course-spot-change',
+    params: { courseId: course.value.id, courseSpotId: stop.id },
+    query: {
+      roomId,
+      originalTitle: stop.spotTitleSnapshot,
+      returnTo: route.fullPath,
+    },
+  });
+};
+
 onMounted(fetchCourse);
 </script>
 
@@ -72,6 +85,13 @@ onMounted(fetchCourse);
         <li v-for="stop in course.stops" :key="stop.id">
           <span class="order">{{ stop.visitOrder }}</span>
           <strong>{{ stop.spotTitleSnapshot ?? '제공 정보 없음' }}</strong>
+          <button
+            v-if="isConfirmed && !hasReplacement && stop.spotRole === 'ATTRACTION'"
+            class="replace-button"
+            type="button"
+            @click="openReplacement(stop)"
+          >대체 장소 찾기</button>
+          <span v-else-if="stop.isReplaced" class="replaced-label">교체됨</span>
         </li>
       </ol>
       <AppButton
@@ -90,9 +110,11 @@ onMounted(fetchCourse);
 .course-page{min-height:100vh;padding:12px 20px 92px;display:flex;flex-direction:column}
 .status-line{margin:8px 4px 20px;color:var(--team-color-gray-600);font-size:13px}
 .stop-list{list-style:none;display:grid;gap:10px;margin-bottom:24px}
-.stop-list li{min-height:54px;padding:10px 18px;border:1px solid #a9e7e8;border-radius:16px;display:flex;align-items:center;gap:22px}
+.stop-list li{min-height:54px;padding:10px 18px;border:1px solid #a9e7e8;border-radius:16px;display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:14px}
 .stop-list .order{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--team-color-primary);color:#fff;font-size:12px}
 .stop-list strong{font-size:14px}
+.replace-button{padding:7px 10px;border:1px solid var(--team-color-primary);border-radius:999px;background:#fff;color:var(--team-color-primary-dark);font-size:11px;font-weight:700}
+.replaced-label{padding:6px 9px;border-radius:999px;background:#dff5ec;color:var(--team-color-primary-dark);font-size:11px;font-weight:700}
 .host-hint{margin:auto auto 24px;color:var(--team-color-gray-600);font-size:13px;text-align:center}
 .course-page :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
 </style>
