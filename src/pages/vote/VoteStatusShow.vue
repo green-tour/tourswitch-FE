@@ -114,7 +114,7 @@ onMounted(fetchStatus);
       </section>
       <button v-if="isHost && roomStatus === 'VOTING'" class="close-button" type="button">투표 종료하기</button>
       <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
-      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'home-show' })">확인</button>
+      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">확인</button>
     </main>
 
     <BottomNav />
