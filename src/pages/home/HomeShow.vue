@@ -6,6 +6,7 @@ import VoteRoomButton from '../../components/common/VoteRoomButton.vue';
 import HomeCategoryBar from '../../components/home/HomeCategoryBar.vue';
 import HomeMenuDrawer from '../../components/home/HomeMenuDrawer.vue';
 import FilteredPlaceCard from '../../components/place/FilteredPlaceCard.vue';
+import myAxios from '../../api/myAxios';
 import { PLACE_CATEGORY_CODES } from '../../constants/placeCategories';
 import { useAuthStore } from '../../store/auth/useAuthStore';
 
@@ -17,15 +18,8 @@ const selectedCategory = ref(String(route.query.category || '전체'));
 const activeTravelRoom = ref(null);
 const displayedPlaces = ref([]);
 const isPlacesLoading = ref(false);
-const homePlaces = [
-  { id: 'place-1', name: '서울숲', regionName: '성동구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['CITY_PARK', 'NATURE_MOUNTAIN'] },
-  { id: 'place-2', name: '북촌 한옥마을', regionName: '종로구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['HISTORICAL_RELIC', 'STREET_TRAIL'] },
-  { id: 'place-3', name: '석촌호수', regionName: '송파구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['CITY_PARK', 'NATURE_MOUNTAIN', 'LEISURE_SPORTS'] },
-  { id: 'place-4', name: '동대문 DDP', regionName: '중구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '보통' }, categoryCodes: ['EXHIBITION_MUSEUM', 'PERFORMANCE', 'FESTIVAL_EVENT'] },
-  { id: 'place-5', name: '남산 서울타워', regionName: '용산구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '보통' }, categoryCodes: ['LANDMARK_VIEW', 'NATURE_MOUNTAIN'] },
-  { id: 'place-6', name: '서울 어린이대공원', regionName: '광진구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['THEME_PARK', 'EXPERIENCE'] },
-  { id: 'place-7', name: '조계사', regionName: '종로구', imageUrl: '/figma-assets/seoul-forest.png', congestion: { level: '여유' }, categoryCodes: ['RELIGIOUS_SITE'] },
-];
+const HOME_RELAXED_LEVEL = '여유';
+const HOME_PLACE_SIZE = 20;
 const isPreview = computed(() => route.query.preview === '1' || sessionStorage.getItem('previewMode') === 'true');
 const isCategoryListing = computed(() => route.query.category !== undefined);
 const isLoggedIn = computed(() => route.query.auth === 'guest' ? false : authStore.isAuthenticated || isPreview.value);
@@ -65,15 +59,24 @@ onMounted(async () => {
   fetchPlaces();
 });
 
-function fetchPlaces() {
+async function fetchPlaces() {
   const categoryCode = PLACE_CATEGORY_CODES[selectedCategory.value];
-  if (isCategoryListing.value && selectedCategory.value === '전체') {
-    displayedPlaces.value = homePlaces;
-    return;
+  // 카테고리 목록은 고른 카테고리 그대로, 기본 홈은 여유로운 관광지만 보여준다.
+  const params = { page: 1, size: HOME_PLACE_SIZE };
+  if (isCategoryListing.value) {
+    if (categoryCode) params.keywordCodes = [categoryCode];
+  } else {
+    params.congestionLevel = HOME_RELAXED_LEVEL;
   }
-  displayedPlaces.value = categoryCode
-    ? homePlaces.filter((place) => place.categoryCodes.includes(categoryCode))
-    : homePlaces.filter((place) => place.congestion.level === '여유');
+  isPlacesLoading.value = true;
+  try {
+    const { data } = await myAxios.get('/places', { params });
+    displayedPlaces.value = data.data.items ?? [];
+  } catch {
+    displayedPlaces.value = [];
+  } finally {
+    isPlacesLoading.value = false;
+  }
 }
 
 function readActiveTravelRoom() {

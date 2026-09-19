@@ -7,7 +7,7 @@ const emit = defineEmits(['open']);
 <template>
   <button class="place-card" type="button" @click="emit('open', props.place)">
     <span class="photo" :style="{ backgroundImage: `url(${props.place.imageUrl || '/figma-assets/seoul-forest.png'})` }" role="img" :aria-label="props.place.name"></span>
-    <span class="copy"><strong>{{ props.place.name }}</strong><small>{{ props.place.regionName || '성동구' }}</small><CrowdBadge :level="props.place.congestion?.level || '여유'" /></span>
+    <span class="copy"><strong>{{ props.place.name }}</strong><small v-if="props.place.regionName">{{ props.place.regionName }}</small><CrowdBadge v-if="props.place.congestion?.level" :level="props.place.congestion.level" /></span>
   </button>
 </template>
 
