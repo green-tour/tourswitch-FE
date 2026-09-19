@@ -21,6 +21,11 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/map",
+    name: "map-show",
+    component: () => import("../pages/map/MapShow.vue"),
+  },
+  {
     path: "/places",
     name: "place-index",
     component: () => import("../pages/place/PlaceIndex.vue"),
