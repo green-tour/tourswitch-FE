@@ -5,8 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faHouse, faMapLocationDot, faClock, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../store/auth/useAuthStore';
 
-// 홈/지도/프로필 화면은 아직 다른 담당자 몫이라 라우트가 없다. 지금은 다섯 아이콘을
-// 전부 보여주되 실제로 이동 가능한 건 "투표" 탭뿐이다 - 나머지는 그 화면이 생기면 연결한다.
+// "투표" 탭만 고정 라우트가 없다. 진행 중인 방이 있을 때 그 방의 투표 화면으로 보낸다.
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -25,7 +24,7 @@ const activeVoteRoomId = computed(() => {
 
 const items = [
   { key: 'home', label: '홈', icon: faHouse, routeName: 'home-show' },
-  { key: 'map', label: '지도', icon: faMapLocationDot },
+  { key: 'map', label: '지도', icon: faMapLocationDot, routeName: 'map-show' },
   { key: 'schedule', label: '기록', icon: faClock, routeName: 'history-index' },
   { key: 'vote', label: '투표', icon: faSquareCheck },
   { key: 'profile', label: '프로필', icon: faCircleUser, routeName: 'my-page-show' },
