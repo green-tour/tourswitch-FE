@@ -64,7 +64,7 @@ const fetchCandidates = async () => {
         title: candidate.title ?? candidate.place?.name ?? `관광지 후보 ${candidate.displayOrder}`,
         overview: candidate.overview ?? candidate.place?.overview ?? '',
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
-        keywordId: candidate.keywordId ?? candidate.keywordName ?? candidate.place?.keywordId ?? candidate.place?.keywordName ?? null,
+        keywordId: candidate.keywordId ?? null,
         myVote: selectedCandidateIds.value.includes(candidate.candidateId ?? candidate.place?.id),
       })),
     }] : [];
