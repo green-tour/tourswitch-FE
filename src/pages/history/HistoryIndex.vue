@@ -14,13 +14,20 @@ const isLoading = ref(true);
 const errorMessage = ref('');
 const closedStatuses = new Set(['CLOSED', 'VOTING_CLOSED', 'COURSE_CONFIRMED', 'CONFIRMED', 'COMPLETED', 'FINISHED']);
 
+const isPastTravel = (travelDate) => {
+  if (!travelDate) return false;
+  const today = new Date();
+  const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return travelDate < todayValue;
+};
+
 const fetchHistory = async () => {
   isLoading.value = true;
   errorMessage.value = '';
 
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
-    // 서버의 status 쿼리 처리와 분리해, 목록을 받은 뒤 종료된 방만 표시한다.
+    // 과거 여행만 기록으로 남긴다. 오늘과 미래의 확정 코스는 코스 탭에서 본다.
     const { data } = await myAxios.get('/courses', {
       params: { page: 1, size: 20 },
     });
@@ -31,7 +38,7 @@ const fetchHistory = async () => {
         : [];
     items.value = records.filter((item) => {
       const status = item.status ?? item.roomStatus ?? item.sessionStatus;
-      return !status || closedStatuses.has(status);
+      return (!status || closedStatuses.has(status)) && isPastTravel(item.travelDate);
     });
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? error.message ?? '여행 기록을 불러오지 못했습니다.';
@@ -42,8 +49,15 @@ const fetchHistory = async () => {
 
 onMounted(fetchHistory);
 
-const openHistory = (courseId) => {
-  router.push({ name: 'history-show', params: { courseId } });
+const openHistory = (item) => {
+  router.push({
+    name: 'history-show',
+    params: { courseId: item.courseId ?? item.id },
+    query: {
+      roomName: item.roomName ?? item.sessionName ?? item.title ?? '',
+      participantCount: item.participantCount ?? '',
+    },
+  });
 };
 </script>
 
@@ -53,13 +67,13 @@ const openHistory = (courseId) => {
 
     <AppState v-if="isLoading" type="loading" message="여행 기록을 불러오는 중입니다." />
     <AppState v-else-if="errorMessage" type="error" :message="errorMessage" @retry="fetchHistory" />
-    <p v-else-if="!items.length" class="empty-history">종료된 여행 기록이 없습니다.</p>
+    <p v-else-if="!items.length" class="empty-history">지난 여행 기록이 없습니다.</p>
 
     <ul v-else class="history-list">
-      <li v-for="item in items" :key="item.id">
-        <button type="button" @click="openHistory(item.id)">
+      <li v-for="item in items" :key="item.courseId ?? item.id">
+        <button type="button" @click="openHistory(item)">
           <time>{{ formatDate(item.travelDate) }}</time>
-          <strong>{{ item.sessionName ?? item.title ?? '투표방(여행방) 이름' }}</strong>
+          <strong>{{ item.roomName ?? item.sessionName ?? item.title ?? '투표방(여행방) 이름' }}</strong>
           <span>관광지 {{ item.placeCount ?? item.stopCount ?? item.stops?.length ?? 0 }}곳 | 참여자 {{ item.participantCount ?? 0 }}명</span>
         </button>
       </li>
