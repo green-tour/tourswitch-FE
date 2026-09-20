@@ -45,7 +45,7 @@ const fetchCandidates = async () => {
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
-    const { data } = await myAxios.get(`/rooms/${roomId}/extra-votes`, { params: { memberId: authStore.user.id } });
+    const { data } = await myAxios.get(`/rooms/${roomId}/extra-votes`);
     applyResponse(data.data);
     if (roomStatus.value !== 'EXTRA_VOTING') {
       router.replace({ name: 'vote-status-show', params: { roomId } });
@@ -72,10 +72,9 @@ const toggleVote = async (candidate) => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
   try {
-    const params = { memberId: authStore.user.id };
     const { data } = candidate.myVote
-      ? await myAxios.delete(`/rooms/${roomId}/extra-votes/${candidate.candidateId}`, { params })
-      : await myAxios.post(`/rooms/${roomId}/extra-votes/${candidate.candidateId}`, null, { params });
+      ? await myAxios.delete(`/rooms/${roomId}/extra-votes/${candidate.candidateId}`)
+      : await myAxios.post(`/rooms/${roomId}/extra-votes/${candidate.candidateId}`, null);
     applyResponse(data.data);
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '선택을 반영하지 못했습니다.';
@@ -99,7 +98,7 @@ const complete = async () => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/extra-votes/completion`, null, { params: { memberId: authStore.user.id } });
+    await myAxios.patch(`/rooms/${roomId}/extra-votes/completion`, null);
     router.push({ name: 'vote-status-show', params: { roomId } });
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '선택 완료 처리에 실패했습니다.';
@@ -130,7 +129,7 @@ onMounted(fetchCandidates);
         <button class="arrow left" type="button" :disabled="activeIndex === 0" @click="move(-1)">‹</button>
         <button class="arrow right" type="button" :disabled="activeIndex >= activeCandidates.length - 1" @click="move(1)">›</button>
         <article v-if="activeCard" class="candidate-card">
-          <span class="photo" :style="{ backgroundImage: `url(${activeCard.imageUrl || '/figma-assets/seoul-forest.png'})` }" role="img" :aria-label="activeCard.title"></span>
+          <span class="photo" :style="{ backgroundImage: `url(${activeCard.imageUrl || '/figma-assets/place-placeholder.svg'})` }" role="img" :aria-label="activeCard.title"></span>
           <div class="card-body">
             <h2>{{ activeCard.title }}</h2>
             <p class="distance">경유지에서 {{ activeCard.distanceMeters }}m</p>

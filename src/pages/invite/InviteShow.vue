@@ -39,15 +39,18 @@ const continueInvite = async () => {
   isJoining.value = true;
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다. 다시 로그인해주세요.');
-    const data = (await myAxios.post(`/invites/${route.params.inviteCode}/participants`, null, {
-      params: { memberId: authStore.user.id },
-    })).data.data;
+    const data = (await myAxios.post(`/invites/${route.params.inviteCode}/participants`, null)).data.data;
     router.replace({ name: 'vote-show', params: { roomId: data.roomId ?? invite.value.roomId } });
   } catch (error) { errorMessage.value = error.response?.data?.message ?? '여행방에 참여하지 못했습니다.'; }
   finally { isJoining.value = false; }
 };
 
-onMounted(fetchInvite);
+// 초대 링크는 로그인 없이 열리는 경로라 라우터 가드가 세션을 복원하지 않는다.
+// 복원하지 않으면 이미 로그인한 사람도 카카오 로그인으로 한 번 더 돌아간다.
+onMounted(async () => {
+  if (!isMockMode() && !authStore.isInitialized) await authStore.restoreSession();
+  await fetchInvite();
+});
 </script>
 
 <template>

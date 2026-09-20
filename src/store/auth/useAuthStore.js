@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import myAxios, { setAccessToken } from '../../api/myAxios';
+import myAxios, { setAccessToken, setSessionExpiredHandler } from '../../api/myAxios';
 
 export const useAuthStore = defineStore('authStore', () => {
   const user = ref(null);
@@ -40,6 +40,11 @@ export const useAuthStore = defineStore('authStore', () => {
   };
 
   const clearSession = () => { accessToken.value = ''; user.value = null; setAccessToken(''); };
+
+  // 재발급까지 실패하면 인터셉터가 이 스토어의 상태도 비워야 가드가 로그인으로 보낸다.
+  // isInitialized도 되돌려, 일시적 실패였다면 다음 화면 이동 때 가드가 복원을 한 번 더 시도한다.
+  setSessionExpiredHandler(() => { accessToken.value = ''; user.value = null; isInitialized.value = false; });
+
   const logout = async () => { try { await myAxios.post('/auth/logout'); } finally { clearSession(); } };
 
   return { user, accessToken, isAuthenticated, isInitialized, completeOAuthLogin, restoreSession, fetchMe, logout, clearSession };

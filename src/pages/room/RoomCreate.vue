@@ -98,7 +98,7 @@ const next = async () => {
       includesFood: form.options.food,
       includesLodging: form.options.stay,
       includesShopping: form.options.shopping,
-    }, { params: { memberId: authStore.user.id } });
+    });
     const room = response.data.data;
     const selectedCategories = keywords
       .filter((keyword) => form.keywordIds.includes(keyword.id))

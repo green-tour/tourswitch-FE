@@ -8,6 +8,8 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 const props = defineProps({
   areas: { type: Array, default: () => [] },
   selectedAreaId: { type: [Number, String], default: null },
+  // 홈의 미리보기처럼 페이지 스크롤을 가로채면 안 되는 자리에서는 조작을 끈다.
+  interactive: { type: Boolean, default: true },
 });
 const emit = defineEmits(['select']);
 
@@ -37,9 +39,12 @@ function drawAreas() {
     if (!area.boundary) return;
     const layer = L.geoJSON(area.boundary, {
       style: () => areaStyle(area, area.areaId === props.selectedAreaId),
+      interactive: props.interactive,
     });
-    layer.bindTooltip(`${area.areaName} · ${area.congestionLevel ?? '정보 없음'}`, { sticky: true });
-    layer.on('click', () => emit('select', area));
+    if (props.interactive) {
+      layer.bindTooltip(`${area.areaName} · ${area.congestionLevel ?? '정보 없음'}`, { sticky: true });
+      layer.on('click', () => emit('select', area));
+    }
     layer.addTo(areaLayerGroup);
     layerByAreaId.set(area.areaId, layer);
   });
@@ -72,7 +77,20 @@ function drawPlacesOfSelectedArea() {
 }
 
 onMounted(() => {
-  map = L.map(container.value, { center: SEOUL_CENTER, zoom: SEOUL_ZOOM, zoomControl: true });
+  map = L.map(container.value, {
+    center: SEOUL_CENTER,
+    zoom: SEOUL_ZOOM,
+    zoomControl: props.interactive,
+    dragging: props.interactive,
+    scrollWheelZoom: props.interactive,
+    doubleClickZoom: props.interactive,
+    touchZoom: props.interactive,
+    boxZoom: props.interactive,
+    keyboard: props.interactive,
+    tap: props.interactive,
+    // 출처 표기는 OpenStreetMap 타일 이용 조건이라 미리보기에서도 끄지 않는다.
+    attributionControl: true,
+  });
   L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
   areaLayerGroup = L.layerGroup().addTo(map);
   placeLayerGroup = L.layerGroup().addTo(map);

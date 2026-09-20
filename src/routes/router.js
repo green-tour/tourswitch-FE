@@ -99,6 +99,11 @@ const routes = [
     component: () => import("../pages/course/CourseShow.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found-show",
+    component: () => import("../pages/common/NotFoundShow.vue"),
+  },
 ];
 
 const router = createRouter({

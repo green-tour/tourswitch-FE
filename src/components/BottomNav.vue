@@ -1,25 +1,24 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faHouse, faMapLocationDot, faClock, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../store/auth/useAuthStore';
+import { useActiveRoom } from '../composables/useActiveRoom';
 
 // "투표" 탭만 고정 라우트가 없다. 진행 중인 방이 있을 때 그 방의 투표 화면으로 보낸다.
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
+const { activeRoom, fetchActiveRoom } = useActiveRoom();
+
 const isVoteActive = computed(() => ['vote-show', 'additional-vote-show', 'vote-status-show'].includes(route.name));
-const activeVoteRoomId = computed(() => {
-  try {
-    const memberId = authStore.user?.id;
-    if (!memberId) return null;
-    const room = JSON.parse(localStorage.getItem(`activeTravelRoom:${memberId}`) ?? 'null');
-    return room?.roomId ?? null;
-  } catch {
-    return null;
-  }
+const activeVoteRoomId = computed(() => activeRoom.value?.roomId ?? null);
+
+// 초대로 참여한 사람은 방을 직접 만들지 않아 로컬에 기록이 없다. 서버에 물어본다.
+onMounted(() => {
+  if (authStore.isAuthenticated) fetchActiveRoom();
 });
 
 const items = [
