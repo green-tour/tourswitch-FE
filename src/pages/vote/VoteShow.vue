@@ -23,7 +23,6 @@ const isSubmitting = ref(false);
 const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
 const activeCategoryId = ref('all');
-const additionalOptions = ref(readAdditionalOptions());
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
 const filterCategories = computed(() => [{ id: 'all', name: '전체' }, ...roomCategories.value]);
@@ -40,7 +39,6 @@ const totalSelectedCount = computed(() =>
     0,
   ),
 );
-const hasAdditionalVote = computed(() => Object.values(additionalOptions.value).some(Boolean));
 const isVoting = computed(() => roomStatus.value === 'VOTING');
 
 const fetchCandidates = async () => {
@@ -164,13 +162,6 @@ function readRoomCategories() {
   }
 }
 
-function readAdditionalOptions() {
-  try {
-    return JSON.parse(localStorage.getItem(`roomAdditionalOptions:${roomId}`) ?? '{}');
-  } catch {
-    return {};
-  }
-}
 
 onMounted(fetchCandidates);
 </script>
@@ -248,7 +239,7 @@ onMounted(fetchCandidates);
       </div>
 
       <button v-if="activeCard" class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
-        {{ isSubmitting ? '처리 중' : hasAdditionalVote ? '다음' : '투표완료' }}
+        {{ isSubmitting ? '처리 중' : '투표완료' }}
       </button>
     </main>
 

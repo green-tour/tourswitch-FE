@@ -39,8 +39,10 @@ const readHostMemberId = () => {
 const isClosing = ref(false);
 
 // 관광지 투표가 끝나면 추가 투표 라운드로 넘어간다. 부가 옵션을 안 켠 방은 이 단계를 건너뛴다.
+// 이미 추가 투표를 마친 참여자는 보내지 않는다. 보내면 완료 후 되돌아와 두 화면을 오가게 된다.
 const goToExtraVoteIfOpen = () => {
-  if (roomStatus.value === 'EXTRA_VOTING') {
+  const me = participants.value.find((participant) => participant.memberId === authStore.user?.id);
+  if (roomStatus.value === 'EXTRA_VOTING' && !me?.extraCompleted) {
     router.replace({ name: 'additional-vote-show', params: { roomId } });
     return true;
   }
@@ -51,9 +53,9 @@ const closeVoting = async () => {
   if (isClosing.value) return;
   isClosing.value = true;
   try {
-    const { data } = await myAxios.patch(`/rooms/${roomId}/close`, null, { params: { memberId: authStore.user.id } });
-    roomStatus.value = data.data.roomStatus;
-    if (!goToExtraVoteIfOpen()) await fetchStatus();
+    await myAxios.patch(`/rooms/${roomId}/close`, null, { params: { memberId: authStore.user.id } });
+    // 상태와 참여자 정보를 한꺼번에 다시 읽는다. fetchStatus가 다음 단계로 보낼지 판단한다.
+    await fetchStatus();
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
   } finally {
@@ -68,8 +70,8 @@ const fetchStatus = async () => {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
     roomStatus.value = tally.roomStatus;
-    if (goToExtraVoteIfOpen()) return;
     participants.value = tally.participants;
+    if (goToExtraVoteIfOpen()) return;
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
