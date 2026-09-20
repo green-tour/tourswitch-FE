@@ -23,7 +23,6 @@ const isSubmitting = ref(false);
 const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
 const activeCategoryId = ref('all');
-const additionalOptions = ref(readAdditionalOptions());
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
 const filterCategories = computed(() => [{ id: 'all', name: '전체' }, ...roomCategories.value]);
@@ -40,7 +39,6 @@ const totalSelectedCount = computed(() =>
     0,
   ),
 );
-const hasAdditionalVote = computed(() => Object.values(additionalOptions.value).some(Boolean));
 const isVoting = computed(() => roomStatus.value === 'VOTING');
 
 const fetchCandidates = async () => {
@@ -128,10 +126,8 @@ const completeVoting = async () => {
     router.replace({ name: 'vote-status-show', params: { roomId } });
     return;
   }
-  if (hasAdditionalVote.value) {
-    router.push({ name: 'additional-vote-show', params: { roomId } });
-    return;
-  }
+  // 부가 후보는 관광지 투표가 끝나 경유지가 확정된 뒤에 만들어진다.
+  // 그래서 먼저 완료를 알리고, 라운드가 넘어갔으면 투표 현황이 추가 투표로 보낸다.
   isSubmitting.value = true;
   try {
     await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });
@@ -166,13 +162,6 @@ function readRoomCategories() {
   }
 }
 
-function readAdditionalOptions() {
-  try {
-    return JSON.parse(localStorage.getItem(`roomAdditionalOptions:${roomId}`) ?? '{}');
-  } catch {
-    return {};
-  }
-}
 
 onMounted(fetchCandidates);
 </script>
@@ -250,7 +239,7 @@ onMounted(fetchCandidates);
       </div>
 
       <button v-if="activeCard" class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
-        {{ isSubmitting ? '처리 중' : hasAdditionalVote ? '다음' : '투표완료' }}
+        {{ isSubmitting ? '처리 중' : '투표완료' }}
       </button>
     </main>
 
