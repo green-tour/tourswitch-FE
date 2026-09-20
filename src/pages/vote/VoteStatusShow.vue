@@ -17,9 +17,12 @@ const errorMessage = ref('');
 const roomStatus = ref('');
 const participants = ref([]);
 const ranking = ref([]);
+const extraRanking = ref([]);
+const EXTRA_ROLE_LABELS = { FOOD: '음식점', LODGING: '숙박', SHOPPING: '쇼핑' };
 
 const completedCount = computed(() => participants.value.filter((p) => p.completed).length);
-const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount)));
+const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount),
+  ...extraRanking.value.map((r) => r.voteCount)));
 const selectedRanking = computed(() => ranking.value.filter((item) => item.voteCount > 0));
 // 방장 판정은 서버가 준 hostMemberId로 한다. 로컬 기록에 기대면 방을 만든 기기에서만 맞다.
 const { activeRoom, fetchActiveRoom } = useActiveRoom();
@@ -91,10 +94,8 @@ const fetchStatus = async () => {
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
     if (goToExtraVoteIfOpen()) return;
-    if (['CLOSED', 'COURSE_CONFIRMED'].includes(roomStatus.value)) {
-      router.replace({ name: 'course-show', params: { roomId } });
-      return;
-    }
+    // 라운드가 끝났다고 코스로 넘겨버리면 최종 결과를 볼 수 없다.
+    // 여기는 현황 화면이므로 끝난 뒤에도 순위를 그대로 보여주고, 코스로는 버튼으로 넘어간다.
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
@@ -102,6 +103,9 @@ const fetchStatus = async () => {
         title: candidate.title ?? candidate.place?.name ?? '알 수 없는 장소',
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
       }))
+      .sort((a, b) => b.voteCount - a.voteCount);
+    extraRanking.value = (tally.extraCandidates ?? [])
+      .filter((candidate) => candidate.voteCount > 0)
       .sort((a, b) => b.voteCount - a.voteCount);
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? error.message ?? '투표 현황을 불러오지 못했습니다.';
@@ -136,7 +140,7 @@ onMounted(() => {
         </div>
       </section>
       <section class="status-card ranking-card">
-        <h2>실시간 순위</h2>
+        <h2>{{ isRoundOpen ? '실시간 순위' : '최종 결과' }}</h2>
         <ol v-if="selectedRanking.length" class="ranking-list">
           <li v-for="(item, index) in selectedRanking" :key="item.candidateId" class="ranking-item">
             <span class="rank-number">{{ index + 1 }}</span>
@@ -152,6 +156,27 @@ onMounted(() => {
           </li>
         </ol>
         <p v-else class="empty-ranking">선택된 후보 카드가 없습니다.</p>
+
+        <template v-if="extraRanking.length">
+          <h3 class="extra-heading">음식점·숙박·쇼핑</h3>
+          <ol class="ranking-list">
+            <li v-for="(item, index) in extraRanking" :key="`extra-${item.candidateId}`" class="ranking-item">
+              <span class="rank-number">{{ index + 1 }}</span>
+              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.title" class="rank-thumb" />
+              <div v-else class="rank-thumb placeholder" aria-hidden="true"></div>
+              <div class="rank-body">
+                <p class="rank-title">
+                  <span class="extra-role">{{ EXTRA_ROLE_LABELS[item.spotRole] ?? item.spotRole }}</span>
+                  {{ item.title }}
+                </p>
+                <div class="rank-bar">
+                  <div class="rank-bar-fill" :style="{ width: (item.voteCount / maxVoteCount) * 100 + '%' }"></div>
+                </div>
+              </div>
+              <span class="rank-count">{{ item.voteCount }}표</span>
+            </li>
+          </ol>
+        </template>
       </section>
       <section class="status-card participant-card">
         <h2>참여자</h2>
@@ -169,7 +194,7 @@ onMounted(() => {
       </section>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
       <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
-      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">확인</button>
+      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button>
     </main>
 
     <BottomNav />
@@ -326,6 +351,6 @@ h1 {
 
 .ranking-list{gap:22px;padding:10px 7px;background:transparent}.ranking-item{gap:12px}.rank-thumb{width:60px;height:60px;border-radius:12px}.rank-body{gap:6px}.rank-title{font-size:14px}.rank-bar{height:7px}.rank-count{font-size:12px}
 
-.page{min-height:100vh;padding:0}.status-content{padding:16px 20px 110px}.back{padding:0;margin:0;border:0;background:none;color:#c7c7c7;font-size:12px;font-weight:700}.status-content h1{margin:47px 0 12px;font-size:20px}.status-card{margin-top:20px;padding:20px 19px;border:1px solid #bdebed;border-radius:15px;background:#fff}.progress-value{font-size:24px;color:#00bfc4}.progress-value::first-letter{font-weight:800}.status-pill{padding:5px 12px;border-radius:999px;background:#20b878;color:#fff;font-size:9px;font-weight:700}.progress-bar{height:7px}.ranking-card h2,.participant-card h2{font-size:15px}.ranking-list{gap:9px;padding:10px 7px;background:#fdfbf7}.ranking-item{gap:7px}.rank-number{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#080808;color:#fff;font-size:9px}.rank-thumb{width:30px;height:30px;border-radius:6px}.rank-body{gap:2px}.rank-title{font-size:10px;font-weight:700}.rank-bar{height:4px;background:#eee5dd}.rank-count{font-size:9px;color:#111}.empty-ranking{padding:28px 0;color:#89928f;font-size:12px;text-align:center}.participant-list{gap:17px}.participant-avatar{width:40px;height:40px;background:#ddd}.participant-name{font-size:12px}.participant-body small{font-size:8px}.participant-status{padding:3px 10px;border:1px solid #bcbcbc;border-radius:999px;color:#999;font-size:9px}.participant-status.completed{border-color:#00bfc4;color:#00bfc4}.complete-button,.close-button{display:block;width:100px;height:32px;margin:28px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:11px;font-weight:800}.close-button{margin-top:16px}.page :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
+.page{min-height:100vh;padding:0}.status-content{padding:16px 20px 110px}.back{padding:0;margin:0;border:0;background:none;color:#c7c7c7;font-size:12px;font-weight:700}.status-content h1{margin:47px 0 12px;font-size:20px}.status-card{margin-top:20px;padding:20px 19px;border:1px solid #bdebed;border-radius:15px;background:#fff}.progress-value{font-size:24px;color:#00bfc4}.progress-value::first-letter{font-weight:800}.status-pill{padding:5px 12px;border-radius:999px;background:#20b878;color:#fff;font-size:9px;font-weight:700}.progress-bar{height:7px}.ranking-card h2,.participant-card h2{font-size:15px}.ranking-list{gap:9px;padding:10px 7px;background:#fdfbf7}.ranking-item{gap:7px}.rank-number{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#080808;color:#fff;font-size:9px}.rank-thumb{width:30px;height:30px;border-radius:6px}.rank-body{gap:2px}.rank-title{font-size:10px;font-weight:700}.rank-bar{height:4px;background:#eee5dd}.rank-count{font-size:9px;color:#111}.empty-ranking{padding:28px 0;color:#89928f;font-size:12px;text-align:center}.extra-heading{margin-top:18px;padding-top:14px;border-top:1px dashed #e7ded6;font-size:13px}.extra-role{display:inline-block;margin-right:5px;padding:1px 6px;border-radius:999px;background:#e6f7f7;color:#0c8f93;font-size:9px;vertical-align:middle}.participant-list{gap:17px}.participant-avatar{width:40px;height:40px;background:#ddd}.participant-name{font-size:12px}.participant-body small{font-size:8px}.participant-status{padding:3px 10px;border:1px solid #bcbcbc;border-radius:999px;color:#999;font-size:9px}.participant-status.completed{border-color:#00bfc4;color:#00bfc4}.complete-button,.close-button{display:block;width:100px;height:32px;margin:28px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:11px;font-weight:800}.close-button{margin-top:16px}.page :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
 .ranking-list{gap:22px;background:transparent}.ranking-item{gap:12px}.rank-thumb{width:60px;height:60px;border-radius:12px}.rank-body{gap:6px}.rank-title{font-size:14px}.rank-bar{height:7px}.rank-count{font-size:12px}.confirm-button{display:block;width:100px;height:32px;margin:28px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:11px;font-weight:800}.action-buttons{display:flex;justify-content:center;gap:12px;margin:28px auto 0}.action-buttons button{width:90px;height:32px;border:1px solid #00bfc4;border-radius:999px;background:#fff;color:#00bfc4;font-size:11px;font-weight:800}.action-buttons button:last-child{background:#00bfc4;color:#fff}
 </style>

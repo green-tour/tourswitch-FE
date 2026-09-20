@@ -32,7 +32,7 @@ const hasActiveTravelRoom = computed(() => {
   const room = activeTravelRoom.value;
   return Boolean(isLoggedIn.value && room?.roomId && room?.roomName && room?.travelDate);
 });
-const ROOM_STATUS_LABELS = { VOTING: '투표 중', EXTRA_VOTING: '추가 투표 중', COURSE_CONFIRMED: '코스 확정' };
+const ROOM_STATUS_LABELS = { VOTING: '투표 중', EXTRA_VOTING: '추가 투표 중', CLOSED: '코스 확정 대기', COURSE_CONFIRMED: '코스 확정' };
 const hasConfirmedCourse = computed(() => activeTravelRoom.value?.status === 'COURSE_CONFIRMED');
 const isTravelDay = computed(() => {
   const travelDate = activeTravelRoom.value?.travelDate;
@@ -42,11 +42,14 @@ const isTravelDay = computed(() => {
   return travelDate === todayValue;
 });
 const showTodayTravelCard = computed(() => hasConfirmedCourse.value && isTravelDay.value);
+// 투표가 끝난 방(CLOSED, COURSE_CONFIRMED)은 코스 화면으로 바로 보낸다.
+// 투표 화면으로 보내면 투표 현황을 거쳐 코스로 두 번 리다이렉트된다.
+const isVotingDone = computed(() => ['CLOSED', 'COURSE_CONFIRMED'].includes(activeTravelRoom.value?.status));
 const openActiveTravel = () => {
   const roomId = activeTravelRoom.value?.roomId;
   if (!roomId) return;
   router.push({
-    name: hasConfirmedCourse.value ? 'course-show' : 'vote-show',
+    name: isVotingDone.value ? 'course-show' : 'vote-show',
     params: { roomId },
   });
 };
@@ -134,8 +137,8 @@ async function fetchPlaces() {
   <main class="home-page">
     <header class="home-header"><button class="home-logo" type="button" aria-label="투어 스위치 메인으로 이동" @click="router.push({ name: 'home-show' })">투어 스위치</button><div><button type="button" aria-label="메뉴" @click="menuOpen = true">☰</button></div></header>
     <HomeCategoryBar :selected="selectedCategory" @select="selectCategory" />
-    <section v-if="!isCategoryListing && showTodayTravelCard" class="today-travel"><p>오늘의 여행,</p><strong><em>한 곳만 스위치</em> 하세요.</strong><button type="button" @click="openTodayCourse">일정 바꾸러 가기</button><img src="/figma-assets/seoul-forest.png" alt="오늘 여행의 대표 관광지" /></section>
-    <section v-else-if="!isCategoryListing && hasActiveTravelRoom" class="ongoing"><span class="ongoing-dday">{{ getDday(activeTravelRoom.travelDate) }}</span><span class="ongoing-status">{{ ROOM_STATUS_LABELS[activeTravelRoom.status] ?? '진행 중' }}</span><strong>{{ activeTravelRoom.roomName }}</strong><span class="ongoing-date">{{ formatTravelDate(activeTravelRoom.travelDate) }}</span><small>지역&nbsp; {{ activeTravelRoom.regionName ?? '서울' }}</small><small>참여자&nbsp; {{ activeTravelRoom.completedParticipantCount }} / {{ activeTravelRoom.participantCount }}명 완료</small><button class="ongoing-action" type="button" @click="openActiveTravel">{{ hasConfirmedCourse ? '오늘의 코스' : '이어서 하기' }}</button></section>
+    <section v-if="!isCategoryListing && showTodayTravelCard" class="today-travel"><p>오늘의 여행,</p><strong><em>한 곳만 스위치</em> 하세요.</strong><button type="button" @click="openTodayCourse">일정 바꾸러 가기</button><img src="/figma-assets/place-placeholder.svg" alt="" aria-hidden="true" /></section>
+    <section v-else-if="!isCategoryListing && hasActiveTravelRoom" class="ongoing"><span class="ongoing-dday">{{ getDday(activeTravelRoom.travelDate) }}</span><span class="ongoing-status">{{ ROOM_STATUS_LABELS[activeTravelRoom.status] ?? '진행 중' }}</span><strong>{{ activeTravelRoom.roomName }}</strong><span class="ongoing-date">{{ formatTravelDate(activeTravelRoom.travelDate) }}</span><small>지역&nbsp; {{ activeTravelRoom.regionName ?? '서울' }}</small><small>참여자&nbsp; {{ activeTravelRoom.completedParticipantCount }} / {{ activeTravelRoom.participantCount }}명 완료</small><button class="ongoing-action" type="button" @click="openActiveTravel">{{ isVotingDone ? '오늘의 코스' : '이어서 하기' }}</button></section>
     <section v-if="isCategoryListing" class="home-section relaxed-section"><h2>{{ selectedCategory === '전체' ? '전체 관광지' : `${selectedCategory} 관광지` }}</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">해당 카테고리의 관광지 정보가 없습니다.</p></section>
     <template v-else><section class="home-section"><h2>지금 서울은?</h2><button class="map-preview" type="button" aria-label="혼잡도 지도 크게 보기" @click="router.push({ name: 'map-show' })"><CongestionMap :areas="congestionAreas" :interactive="false" /><strong v-if="!congestionAreas.length">혼잡도 지도</strong></button><div v-if="congestionLegend.length" class="legend"><span>혼잡도 범례</span><template v-for="item in congestionLegend" :key="item.level"><i :style="{ background: item.color }"></i>{{ item.level }}</template></div></section><section class="home-section relaxed-section"><h2>여유로운 관광지</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">현재 여유로운 관광지 정보가 없습니다.</p></section></template>
     <VoteRoomButton class="create-fab" @click="go('room-create')" /><BottomNav />
