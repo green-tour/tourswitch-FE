@@ -366,8 +366,14 @@ onMounted(fetchCandidates);
   background: transparent;
   color: #202124;
   font-size: 3rem;
-  line-height: .6;
   font-weight: 300;
+  /* line-height를 줄여 두면 글리프가 박스 위쪽에 떠 하트 버튼보다 높아 보인다.
+     박스 안에서 가운데로 맞추고 하트의 시각 중심에 맞춰 조금 내린다. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding-top: 8px;
 }
 
 .nav-arrow:disabled {
