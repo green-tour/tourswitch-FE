@@ -128,10 +128,8 @@ const completeVoting = async () => {
     router.replace({ name: 'vote-status-show', params: { roomId } });
     return;
   }
-  if (hasAdditionalVote.value) {
-    router.push({ name: 'additional-vote-show', params: { roomId } });
-    return;
-  }
+  // 부가 후보는 관광지 투표가 끝나 경유지가 확정된 뒤에 만들어진다.
+  // 그래서 먼저 완료를 알리고, 라운드가 넘어갔으면 투표 현황이 추가 투표로 보낸다.
   isSubmitting.value = true;
   try {
     await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });

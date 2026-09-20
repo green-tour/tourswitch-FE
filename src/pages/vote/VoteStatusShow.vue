@@ -36,6 +36,31 @@ const readHostMemberId = () => {
   } catch { return null; }
 };
 
+const isClosing = ref(false);
+
+// 관광지 투표가 끝나면 추가 투표 라운드로 넘어간다. 부가 옵션을 안 켠 방은 이 단계를 건너뛴다.
+const goToExtraVoteIfOpen = () => {
+  if (roomStatus.value === 'EXTRA_VOTING') {
+    router.replace({ name: 'additional-vote-show', params: { roomId } });
+    return true;
+  }
+  return false;
+};
+
+const closeVoting = async () => {
+  if (isClosing.value) return;
+  isClosing.value = true;
+  try {
+    const { data } = await myAxios.patch(`/rooms/${roomId}/close`, null, { params: { memberId: authStore.user.id } });
+    roomStatus.value = data.data.roomStatus;
+    if (!goToExtraVoteIfOpen()) await fetchStatus();
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
+  } finally {
+    isClosing.value = false;
+  }
+};
+
 const fetchStatus = async () => {
   isLoading.value = true;
   errorMessage.value = '';
@@ -43,6 +68,7 @@ const fetchStatus = async () => {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
     roomStatus.value = tally.roomStatus;
+    if (goToExtraVoteIfOpen()) return;
     participants.value = tally.participants;
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
@@ -112,7 +138,7 @@ onMounted(fetchStatus);
           </li>
         </ul>
       </section>
-      <button v-if="isHost && roomStatus === 'VOTING'" class="close-button" type="button">투표 종료하기</button>
+      <button v-if="isHost && roomStatus === 'VOTING'" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
       <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
       <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">확인</button>
     </main>
