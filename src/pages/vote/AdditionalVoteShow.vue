@@ -89,7 +89,7 @@ const loadOverview = async (candidate) => {
   if (!candidate || overviewByContentId.value[candidate.contentId] !== undefined) return;
   try {
     const { data } = await myAxios.get(`/places/${candidate.contentId}`);
-    overviewByContentId.value = { ...overviewByContentId.value, [candidate.contentId]: data.data.overview ?? '' };
+    overviewByContentId.value = { ...overviewByContentId.value, [candidate.contentId]: data.data.summary ?? '' };
   } catch {
     overviewByContentId.value = { ...overviewByContentId.value, [candidate.contentId]: '' };
   }
@@ -134,7 +134,9 @@ onMounted(fetchCandidates);
           <div class="card-body">
             <h2>{{ activeCard.title }}</h2>
             <p class="distance">경유지에서 {{ activeCard.distanceMeters }}m</p>
-            <p class="overview" @click="loadOverview(activeCard)">{{ overviewByContentId[activeCard.contentId] || '설명 보기' }}</p>
+            <p v-if="overviewByContentId[activeCard.contentId] === undefined" class="overview link" @click="loadOverview(activeCard)">설명 보기</p>
+            <p v-else-if="overviewByContentId[activeCard.contentId]" class="overview">{{ overviewByContentId[activeCard.contentId] }}</p>
+            <p v-else class="overview muted">등록된 설명이 없습니다.</p>
             <button type="button" :class="{ selected: activeCard.myVote }" :disabled="isSubmitting" @click="toggleVote(activeCard)">{{ activeCard.myVote ? '선택 취소' : '이곳으로 할게요' }}</button>
           </div>
         </article>
@@ -167,7 +169,9 @@ onMounted(fetchCandidates);
 .card-body{padding:12px 14px}
 .card-body h2{font-size:14px}
 .distance{margin-top:4px;color:#89928f;font-size:10px}
-.overview{margin-top:6px;min-height:28px;color:#4a4a4a;font-size:10px;line-height:1.4;cursor:pointer}
+.overview{margin-top:6px;min-height:28px;color:#4a4a4a;font-size:10px;line-height:1.4}
+.overview.link{color:#00bfc4;cursor:pointer;text-decoration:underline}
+.overview.muted{color:#89928f}
 .card-body button{display:block;width:110px;height:31px;margin:14px auto 0;border:1px solid #f04452;border-radius:999px;background:#fff;color:#f04452;font-size:10px;font-weight:700}
 .card-body button.selected,.card-body button:hover{background:#f04452;color:#fff}
 .select-count{margin-top:18px;color:#4a4a4a;font-size:11px;text-align:center}
