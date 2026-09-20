@@ -119,5 +119,5 @@ watch(() => props.selectedAreaId, () => {
 </template>
 
 <style scoped>
-.congestion-map{width:100%;height:100%;border-radius:15px;overflow:hidden;background:#d9d9d9}
+.congestion-map{position:relative;z-index:0;isolation:isolate;width:100%;height:100%;border-radius:15px;overflow:hidden;background:#d9d9d9}
 </style>

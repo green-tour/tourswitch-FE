@@ -91,6 +91,10 @@ const fetchStatus = async () => {
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
     if (goToExtraVoteIfOpen()) return;
+    if (['CLOSED', 'COURSE_CONFIRMED'].includes(roomStatus.value)) {
+      router.replace({ name: 'course-show', params: { roomId } });
+      return;
+    }
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
