@@ -43,7 +43,7 @@ onMounted(fetchPlace);
         :style="{ backgroundImage: `url(${place.imageUrl || '/figma-assets/place-placeholder.svg'})` }"
       >
         <button class="back" aria-label="뒤로가기" @click="router.back()">‹</button><div class="actions"><button aria-label="공유">⌯</button><button aria-label="관심 관광지">♡</button></div>
-        <div class="title"><h1>{{ place.name }}</h1><span>{{ place.regionName || '성동구' }}</span></div><CrowdBadge class="badge" :level="place.congestion?.level || '여유'" />
+        <div class="title"><h1>{{ place.name }}</h1><span v-if="place.regionName">{{ place.regionName }}</span></div><CrowdBadge v-if="place.congestion?.level" class="badge" :level="place.congestion.level" />
       </section>
       <section class="details">
         <p class="summary">{{ place.summary || '제공 정보 없음' }}</p>
