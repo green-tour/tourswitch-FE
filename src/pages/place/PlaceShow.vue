@@ -22,7 +22,7 @@ const fetchPlace = async () => {
     localStorage.setItem('recentViewedPlace', JSON.stringify({
       id: place.value.id,
       name: place.value.name,
-      imageUrl: place.value.imageUrl ?? '/figma-assets/seoul-forest.png',
+      imageUrl: place.value.imageUrl ?? '/figma-assets/place-placeholder.svg',
       regionName: place.value.regionName ?? '',
     }));
   }

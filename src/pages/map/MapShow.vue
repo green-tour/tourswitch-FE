@@ -82,7 +82,7 @@ onMounted(fetchCongestion);
           <ul v-else class="place-list">
             <li v-for="place in selectedArea.places" :key="place.contentId">
               <button type="button" @click="router.push({ name: 'place-show', params: { placeId: place.contentId } })">
-                <span class="photo" :style="{ backgroundImage: `url(${place.imageUrl || '/figma-assets/seoul-forest.png'})` }" role="img" :aria-label="place.name"></span>
+                <span class="photo" :style="{ backgroundImage: `url(${place.imageUrl || '/figma-assets/place-placeholder.svg'})` }" role="img" :aria-label="place.name"></span>
                 <span class="copy"><strong>{{ place.name }}</strong><small>{{ selectedArea.areaName }}</small></span>
               </button>
             </li>

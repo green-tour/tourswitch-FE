@@ -6,8 +6,6 @@ import BottomNav from '../../components/BottomNav.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
 
-// memberId는 회원 도메인 JWT 인증이 붙기 전까지 쿼리 파라미터로 임시 수신한다
-// (백엔드 VoteController와 동일한 사유 - SecurityContext 연동 시 교체).
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -23,6 +21,18 @@ const isSubmitting = ref(false);
 const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
 const activeCategoryId = ref('all');
+const overviewByContentId = ref({});
+
+// 설명은 후보 응답에 없어 카드를 펼칠 때 한 건씩만 상세로 채운다.
+const loadOverview = async (card) => {
+  if (!card?.contentId || overviewByContentId.value[card.contentId] !== undefined) return;
+  try {
+    const { data } = await myAxios.get(`/places/${card.contentId}`);
+    overviewByContentId.value = { ...overviewByContentId.value, [card.contentId]: data.data.summary ?? '' };
+  } catch {
+    overviewByContentId.value = { ...overviewByContentId.value, [card.contentId]: '' };
+  }
+};
 
 const activeGroup = computed(() => candidateGroups.value[activeGroupIndex.value] ?? null);
 const filterCategories = computed(() => [{ id: 'all', name: '전체' }, ...roomCategories.value]);
@@ -46,7 +56,7 @@ const fetchCandidates = async () => {
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
-    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
+    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
     if (roomStatus.value && !isVoting.value) {
       router.replace({ name: 'vote-status-show', params: { roomId } });
@@ -60,7 +70,6 @@ const fetchCandidates = async () => {
         ...candidate,
         candidateId: candidate.candidateId ?? candidate.place?.id,
         title: candidate.title ?? candidate.place?.name ?? `관광지 후보 ${candidate.displayOrder}`,
-        overview: candidate.overview ?? candidate.place?.overview ?? '',
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
         keywordId: candidate.keywordId ?? null,
         myVote: selectedCandidateIds.value.includes(candidate.candidateId ?? candidate.place?.id),
@@ -100,9 +109,9 @@ const toggleVote = async () => {
   const card = activeCard.value;
   try {
     if (card.myVote) {
-      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`, { params: { memberId: authStore.user.id } });
+      await myAxios.delete(`/rooms/${roomId}/votes/${card.candidateId}`);
     } else {
-      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null, { params: { memberId: authStore.user.id } });
+      await myAxios.put(`/rooms/${roomId}/votes/${card.candidateId}`, null);
     }
     card.myVote = !card.myVote;
     selectedCandidateIds.value = card.myVote
@@ -130,7 +139,7 @@ const completeVoting = async () => {
   // 그래서 먼저 완료를 알리고, 라운드가 넘어갔으면 투표 현황이 추가 투표로 보낸다.
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true }, { params: { memberId: authStore.user.id } });
+    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true });
     router.push({ name: 'vote-status-show', params: { roomId } });
   } catch (error) {
     if (error.response?.status === 409) {
@@ -193,10 +202,9 @@ onMounted(fetchCandidates);
 
               <div class="card-body">
                 <h2>{{ card.title }}</h2>
-                <p v-if="card.overview" class="overview">{{ card.overview }}</p>
-                <p v-if="card.hasWheelchairAccess || card.hasStrollerAccess" class="accessibility">
-                  ♿ 유모차, 휠체어 가능
-                </p>
+                <p v-if="overviewByContentId[card.contentId] === undefined" class="overview link" @click="loadOverview(card)">설명 보기</p>
+                <p v-else-if="overviewByContentId[card.contentId]" class="overview">{{ overviewByContentId[card.contentId] }}</p>
+                <p v-else class="overview muted">등록된 설명이 없습니다.</p>
                 <p v-if="card.concentrationGrade" class="congestion">혼잡도 {{ card.concentrationGrade }}</p>
               </div>
             </article>
@@ -419,13 +427,18 @@ onMounted(fetchCandidates);
   -webkit-line-clamp: 2;
 }
 
-.accessibility {
-  margin-top: 11px;
-  font-size: 0.5625rem;
-  color: #202124;
+.overview.link {
+  color: var(--team-color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.overview.muted {
+  color: var(--team-color-gray-600);
 }
 
 .congestion {
+  margin-top: 11px;
   font-size: 0.5625rem;
   color: var(--team-color-primary);
   font-weight: 700;

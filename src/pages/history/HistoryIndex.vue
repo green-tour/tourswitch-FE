@@ -22,7 +22,7 @@ const fetchHistory = async () => {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
     // 서버의 status 쿼리 처리와 분리해, 목록을 받은 뒤 종료된 방만 표시한다.
     const { data } = await myAxios.get('/courses', {
-      params: { page: 1, size: 20, memberId: authStore.user.id },
+      params: { page: 1, size: 20 },
     });
     const records = Array.isArray(data.data?.items)
       ? data.data.items

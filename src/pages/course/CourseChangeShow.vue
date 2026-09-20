@@ -5,15 +5,12 @@ import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
 import RegionFilter from '../../components/course/RegionFilter.vue';
 import ReplacementCandidateCard from '../../components/course/ReplacementCandidateCard.vue';
-import { useAuthStore } from '../../store/auth/useAuthStore';
 
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
 const courseId = route.params.courseId;
 const courseSpotId = route.params.courseSpotId;
 const roomId = route.query.roomId;
-const memberId = computed(() => authStore.user?.id);
 
 const step = ref('region');
 const regions = ref([]);
@@ -68,7 +65,7 @@ const fetchCandidates = async () => {
   selectedCandidate.value = null;
   try {
     const response = await myAxios.get(`/courses/${courseId}/replacement-candidates`, {
-      params: { administrativeDongId: dongId.value, memberId: memberId.value },
+      params: { administrativeDongId: dongId.value },
     });
     radiusMeters.value = response.data.data.radiusMeters;
     candidates.value = response.data.data.candidates;
@@ -91,13 +88,10 @@ const replaceSpot = async () => {
         administrativeDongId: Number(dongId.value),
         replacementContentId: selectedCandidate.value.contentId,
       },
-      { params: { memberId: memberId.value } },
     );
     replacedCandidate.value = selectedCandidate.value;
     if (roomId) {
-      const response = await myAxios.get(`/rooms/${roomId}/course`, {
-        params: { memberId: memberId.value },
-      });
+      const response = await myAxios.get(`/rooms/${roomId}/course`);
       changedCourse.value = response.data.data;
     }
     step.value = 'complete';

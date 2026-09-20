@@ -5,8 +5,8 @@ import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
+import { useActiveRoom } from '../../composables/useActiveRoom';
 
-// memberId는 회원 도메인 JWT 인증이 붙기 전까지 쿼리 파라미터로 임시 수신한다.
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -21,7 +21,14 @@ const ranking = ref([]);
 const completedCount = computed(() => participants.value.filter((p) => p.completed).length);
 const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount)));
 const selectedRanking = computed(() => ranking.value.filter((item) => item.voteCount > 0));
-const isHost = computed(() => readHostMemberId() === authStore.user?.id);
+// 방장 판정은 서버가 준 hostMemberId로 한다. 로컬 기록에 기대면 방을 만든 기기에서만 맞다.
+const { activeRoom, fetchActiveRoom } = useActiveRoom();
+const isHost = computed(() => {
+  const hostMemberId = activeRoom.value?.roomId === Number(roomId)
+    ? activeRoom.value.hostMemberId
+    : readHostMemberId();
+  return hostMemberId != null && hostMemberId === authStore.user?.id;
+});
 const progressPercent = computed(() =>
   participants.value.length === 0 ? 0 : Math.round((completedCount.value / participants.value.length) * 100),
 );
@@ -38,6 +45,11 @@ const readHostMemberId = () => {
 
 const isClosing = ref(false);
 
+// 방장은 관광지 투표와 추가 투표 두 라운드 모두 강제로 끝낼 수 있다(서버도 두 상태를 받는다).
+const OPEN_STATUSES = ['VOTING', 'EXTRA_VOTING'];
+const STATUS_LABELS = { VOTING: '투표 진행 중', EXTRA_VOTING: '추가 투표 진행 중' };
+const isRoundOpen = computed(() => OPEN_STATUSES.includes(roomStatus.value));
+
 // 관광지 투표가 끝나면 추가 투표 라운드로 넘어간다. 부가 옵션을 안 켠 방은 이 단계를 건너뛴다.
 // 이미 추가 투표를 마친 참여자는 보내지 않는다. 보내면 완료 후 되돌아와 두 화면을 오가게 된다.
 const goToExtraVoteIfOpen = () => {
@@ -53,7 +65,7 @@ const closeVoting = async () => {
   if (isClosing.value) return;
   isClosing.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/close`, null, { params: { memberId: authStore.user.id } });
+    await myAxios.patch(`/rooms/${roomId}/close`, null);
     // 상태와 참여자 정보를 한꺼번에 다시 읽는다. fetchStatus가 다음 단계로 보낼지 판단한다.
     await fetchStatus();
   } catch (error) {
@@ -68,7 +80,7 @@ const fetchStatus = async () => {
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
-    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`, { params: { memberId: authStore.user.id } })).data.data;
+    const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
     if (goToExtraVoteIfOpen()) return;
@@ -87,7 +99,10 @@ const fetchStatus = async () => {
   }
 };
 
-onMounted(fetchStatus);
+onMounted(() => {
+  fetchActiveRoom();
+  fetchStatus();
+});
 </script>
 
 <template>
@@ -103,7 +118,7 @@ onMounted(fetchStatus);
             <p class="progress-label">진행률</p>
             <p class="progress-value">{{ completedCount }} / {{ participants.length }}명 완료</p>
           </div>
-          <span class="status-pill">{{ roomStatus === 'VOTING' ? '투표 진행 중' : '투표 종료' }}</span>
+          <span class="status-pill">{{ STATUS_LABELS[roomStatus] ?? '투표 종료' }}</span>
         </div>
         <div class="progress-bar">
           <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }"></div>
@@ -140,7 +155,7 @@ onMounted(fetchStatus);
           </li>
         </ul>
       </section>
-      <button v-if="isHost && roomStatus === 'VOTING'" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
+      <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
       <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
       <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">확인</button>
     </main>
