@@ -33,8 +33,15 @@ const progressPercent = computed(() =>
   participants.value.length === 0 ? 0 : Math.round((completedCount.value / participants.value.length) * 100),
 );
 
-// 회원 도메인이 아직 없어 참여자 닉네임을 못 받아온다 - memberId로 임시 표시한다.
-const participantLabel = (memberId) => `참여자 ${memberId}`;
+// 닉네임이 비어 있는 계정이 있을 수 있어 그때만 번호로 떨어진다.
+const participantLabel = (participant) => participant.nickname || `참여자 ${participant.memberId}`;
+
+const formatTime = (value) => {
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(at.getHours())}:${pad(at.getMinutes())}`;
+};
 
 const readHostMemberId = () => {
   try {
@@ -148,8 +155,9 @@ onMounted(() => {
           <li v-for="participant in participants" :key="participant.memberId" class="participant-item">
             <div class="participant-avatar" aria-hidden="true"></div>
             <div class="participant-body">
-              <p class="participant-name">{{ participantLabel(participant.memberId) }}</p>
-              <small>참여 00:00</small>
+              <p class="participant-name">{{ participantLabel(participant) }}</p>
+              <small v-if="participant.completedAt">투표 완료 {{ formatTime(participant.completedAt) }}</small>
+              <small v-else>아직 고르는 중</small>
             </div>
             <span class="participant-status" :class="{ completed: participant.completed }">{{ participant.completed ? '완료' : '투표 중' }}</span>
           </li>
