@@ -1,10 +1,42 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-  // 개발 서버Prozy 정의 
+  plugins: [
+    vue(),
+    // 모바일 설치형(PWA)으로 쓰기 위한 매니페스트와 서비스워커.
+    // 캐싱은 앱 셸과 정적 자산까지만 한다. 혼잡도처럼 신선도가 중요한 API 응답을 캐싱하면
+    // 오래된 값이 최신처럼 보여 오히려 혼란스럽다.
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icons/apple-touch-icon.png'],
+      manifest: {
+        name: '투어스위치',
+        short_name: '투어스위치',
+        description: '친구들과 서울 여행지를 고르고 혼잡도를 피해 코스를 만드는 서비스',
+        lang: 'ko',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#ffffff',
+        theme_color: '#00bfc4',
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // API는 서비스워커가 가로채지 않는다. 항상 네트워크로 나간다.
+        navigateFallbackDenylist: [/^\/api\//],
+      },
+    }),
+  ],
+  // 개발 서버Prozy 정의
   server: {
     proxy: {
       // 프론트엣서 /api로 시작하는 요청이 오면 localhost:8088 백엔드로 대신 보내
