@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import AppButton from '../../components/common/AppButton.vue';
@@ -145,6 +145,22 @@ const loadKakaoSdk = () => new Promise((resolve, reject) => {
   document.head.appendChild(script);
 });
 
+// SDK를 클릭 시점에 처음 불러오면, 로드를 기다리는 동안 브라우저가 사용자 제스처를 잃어
+// 카카오 공유 팝업이 차단된다(SDK가 null.focus()로 TypeError를 낸다).
+// 그래서 화면에 들어올 때 미리 올려두고, 클릭 핸들러에서는 곧바로 공유만 연다.
+const prepareKakao = async () => {
+  const javascriptKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+  if (!javascriptKey) return;
+  try {
+    const Kakao = await loadKakaoSdk();
+    if (!Kakao?.isInitialized()) Kakao.init(javascriptKey);
+  } catch {
+    // 미리 올리지 못해도 공유 시점에 복사로 대체한다.
+  }
+};
+
+onMounted(prepareKakao);
+
 const shareInvite = async () => {
   const url = result.value?.inviteUrl;
   const javascriptKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
@@ -154,9 +170,15 @@ const shareInvite = async () => {
     errorMessage.value = '카카오 공유 설정이 아직 없어 초대 링크를 복사했습니다.';
     return;
   }
+  // 여기서 await을 걸면 제스처가 끊긴다. 미리 올려둔 SDK가 없으면 복사로 넘긴다.
+  const Kakao = window.Kakao;
+  if (!Kakao?.isInitialized?.()) {
+    await copyInvite();
+    errorMessage.value = '카카오톡 공유를 준비하지 못해 초대 링크를 복사했습니다.';
+    prepareKakao();
+    return;
+  }
   try {
-    const Kakao = await loadKakaoSdk();
-    if (!Kakao?.isInitialized()) Kakao.init(javascriptKey);
     Kakao.Share.sendDefault({
       objectType: 'text',
       text: `${result.value?.roomName ?? '투어 스위치 여행방'}에 초대합니다. 함께 관광지를 골라보세요!`,

@@ -210,39 +210,41 @@ onMounted(fetchCandidates);
             </article>
           </div>
         </div>
-        <button
-          class="nav-arrow left"
-          type="button"
-          aria-label="이전 카드"
-          :disabled="activeCardIndex === 0"
-          @click="showPrevCard"
-        >
-          <span aria-hidden="true">‹</span>
-        </button>
-        <button
-          class="nav-arrow right"
-          type="button"
-          aria-label="다음 카드"
-          :disabled="activeCardIndex === filteredCandidates.length - 1"
-          @click="showNextCard"
-        >
-          <span aria-hidden="true">›</span>
-        </button>
       </div>
 
       <p v-else class="category-empty">이 카테고리에 해당하는 후보 카드가 없습니다.</p>
 
       <div v-if="activeCard" class="select-area">
-        <button
-          class="heart-button"
-          type="button"
-          :class="{ selected: activeCard?.myVote }"
-          :aria-pressed="activeCard?.myVote"
-          :disabled="isSubmitting"
-          @click="toggleVote"
-        >
-          ♥
-        </button>
+        <div class="vote-controls">
+          <button
+            class="nav-arrow"
+            type="button"
+            aria-label="이전 카드"
+            :disabled="activeCardIndex === 0"
+            @click="showPrevCard"
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+          <button
+            class="heart-button"
+            type="button"
+            :class="{ selected: activeCard?.myVote }"
+            :aria-pressed="activeCard?.myVote"
+            :disabled="isSubmitting"
+            @click="toggleVote"
+          >
+            ♥
+          </button>
+          <button
+            class="nav-arrow"
+            type="button"
+            aria-label="다음 카드"
+            :disabled="activeCardIndex === filteredCandidates.length - 1"
+            @click="showNextCard"
+          >
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
         <p class="select-count">{{ totalSelectedCount }}장 선택</p>
       </div>
 
@@ -358,21 +360,21 @@ onMounted(fetchCandidates);
 }
 
 .nav-arrow {
-  position: absolute;
-  z-index: 2;
-  top: 108px;
-  width: 24px;
-  height: 56px;
+  width: 34px;
+  height: 70px;
   border: none;
   background: transparent;
   color: #202124;
-  font-size: 3.5rem;
-  line-height: .6;
+  font-size: 3rem;
   font-weight: 300;
+  /* line-height를 줄여 두면 글리프가 박스 위쪽에 떠 하트 버튼보다 높아 보인다.
+     박스 안에서 가운데로 맞추고 하트의 시각 중심에 맞춰 조금 내린다. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding-top: 8px;
 }
-
-.nav-arrow.left { left: 42px; }
-.nav-arrow.right { right: 42px; }
 
 .nav-arrow:disabled {
   opacity: 0;
@@ -452,6 +454,12 @@ onMounted(fetchCandidates);
   margin-top: 48px;
 }
 
+.vote-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .heart-button {
   width: 70px;
   height: 70px;
@@ -497,11 +505,6 @@ onMounted(fetchCandidates);
 .complete-button:disabled,
 .heart-button:disabled {
   opacity: .55;
-}
-
-@media (max-width: 340px) {
-  .nav-arrow.left { left: 30px; }
-  .nav-arrow.right { right: 30px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

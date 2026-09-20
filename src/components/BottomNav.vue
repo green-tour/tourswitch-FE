@@ -2,11 +2,11 @@
 import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { faHouse, faMapLocationDot, faClock, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faMapLocationDot, faRoute, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { useAuthStore } from '../store/auth/useAuthStore';
 import { useActiveRoom } from '../composables/useActiveRoom';
 
-// "투표" 탭만 고정 라우트가 없다. 진행 중인 방이 있을 때 그 방의 투표 화면으로 보낸다.
+// 투표와 코스는 현재 여행방이 있을 때만 열 수 있다.
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -14,7 +14,12 @@ const authStore = useAuthStore();
 const { activeRoom, fetchActiveRoom } = useActiveRoom();
 
 const isVoteActive = computed(() => ['vote-show', 'additional-vote-show', 'vote-status-show'].includes(route.name));
-const activeVoteRoomId = computed(() => activeRoom.value?.roomId ?? null);
+const activeVoteRoomId = computed(() =>
+  ['VOTING', 'EXTRA_VOTING'].includes(activeRoom.value?.status) ? activeRoom.value.roomId : null,
+);
+const activeCourseRoomId = computed(() =>
+  activeRoom.value?.status === 'COURSE_CONFIRMED' ? activeRoom.value.roomId : null,
+);
 
 // 초대로 참여한 사람은 방을 직접 만들지 않아 로컬에 기록이 없다. 서버에 물어본다.
 onMounted(() => {
@@ -24,19 +29,23 @@ onMounted(() => {
 const items = [
   { key: 'home', label: '홈', icon: faHouse, routeName: 'home-show' },
   { key: 'map', label: '지도', icon: faMapLocationDot, routeName: 'map-show' },
-  { key: 'schedule', label: '기록', icon: faClock, routeName: 'history-index' },
+  { key: 'course', label: '코스', icon: faRoute },
   { key: 'vote', label: '투표', icon: faSquareCheck },
   { key: 'profile', label: '프로필', icon: faCircleUser, routeName: 'my-page-show' },
 ];
 
 const isActive = (item) =>
   (item.key === 'vote' && isVoteActive.value) ||
-  (item.key === 'schedule' && String(route.name).startsWith('history-')) ||
+  (item.key === 'course' && route.name === 'course-show') ||
   route.name === item.routeName;
 
 const navigate = (item) => {
   if (item.key === 'vote' && activeVoteRoomId.value) {
     router.push({ name: 'vote-show', params: { roomId: activeVoteRoomId.value } });
+    return;
+  }
+  if (item.key === 'course' && activeCourseRoomId.value) {
+    router.push({ name: 'course-show', params: { roomId: activeCourseRoomId.value } });
     return;
   }
   if (item.routeName) router.push({ name: item.routeName });
@@ -50,7 +59,7 @@ const navigate = (item) => {
       :key="item.key"
       class="nav-item"
       :class="{ active: isActive(item) }"
-      :disabled="(!item.routeName && item.key !== 'vote') || (item.key === 'vote' && !activeVoteRoomId)"
+      :disabled="(!item.routeName && !['vote', 'course'].includes(item.key)) || (item.key === 'vote' && !activeVoteRoomId) || (item.key === 'course' && !activeCourseRoomId)"
       type="button"
       @click="navigate(item)"
     >
