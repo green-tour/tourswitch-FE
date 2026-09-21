@@ -49,7 +49,9 @@ const totalSelectedCount = computed(() =>
     0,
   ),
 );
-const isVoting = computed(() => roomStatus.value === 'VOTING');
+// 방장이 1차 투표를 닫은 뒤에도 코스를 확정하기 전에는 다시 선택할 수 있다.
+// COURSE_CONFIRMED가 된 뒤에만 기존 투표를 수정할 수 없게 한다.
+const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
 
 const fetchCandidates = async () => {
   isLoading.value = true;
@@ -58,7 +60,7 @@ const fetchCandidates = async () => {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
-    if (roomStatus.value && !isVoting.value) {
+    if (roomStatus.value && !canRevote.value) {
       router.replace({ name: 'vote-status-show', params: { roomId } });
       return;
     }
@@ -100,7 +102,7 @@ const selectCategory = (categoryId) => {
 };
 
 const toggleVote = async () => {
-  if (!isVoting.value) {
+  if (!canRevote.value) {
     router.replace({ name: 'vote-status-show', params: { roomId } });
     return;
   }
@@ -131,7 +133,7 @@ const toggleVote = async () => {
 
 const completeVoting = async () => {
   if (isSubmitting.value) return;
-  if (!isVoting.value) {
+  if (!canRevote.value) {
     router.replace({ name: 'vote-status-show', params: { roomId } });
     return;
   }

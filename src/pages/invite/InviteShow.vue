@@ -18,6 +18,8 @@ const isJoining = ref(false);
 const errorMessage = ref('');
 const isAuthenticated = computed(() => authStore.isAuthenticated || isMockMode());
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const inviteToken = computed(() => String(route.params.inviteCode ?? ''));
+const inviteApiPath = computed(() => `/invites/${encodeURIComponent(inviteToken.value)}`);
 
 const startKakaoLogin = () => {
   preserveReturnTo(route.fullPath);
@@ -26,7 +28,10 @@ const startKakaoLogin = () => {
 
 const fetchInvite = async () => {
   isLoading.value = true; errorMessage.value = '';
-  try { invite.value = (await myAxios.get(`/invites/${route.params.inviteCode}`)).data.data; }
+  try {
+    if (!inviteToken.value) throw new Error('초대 코드가 없습니다.');
+    invite.value = (await myAxios.get(inviteApiPath.value)).data.data;
+  }
   catch (error) { errorMessage.value = error.response?.data?.message ?? '유효하지 않거나 종료된 초대 링크입니다.'; }
   finally { isLoading.value = false; }
 };
@@ -39,8 +44,12 @@ const continueInvite = async () => {
   isJoining.value = true;
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다. 다시 로그인해주세요.');
-    const data = (await myAxios.post(`/invites/${route.params.inviteCode}/participants`, null)).data.data;
-    router.replace({ name: 'vote-show', params: { roomId: data.roomId ?? invite.value.roomId } });
+    const data = (await myAxios.post(`${inviteApiPath.value}/participants`, null)).data.data;
+    // 현재 API는 roomId를 돌려주지만, 이미 배포된 이전 응답(sessionId)도 받아
+    // 참여는 성공했는데 /rooms/undefined/vote로 이동하는 일을 막는다.
+    const roomId = data?.roomId ?? data?.sessionId ?? invite.value?.roomId ?? invite.value?.sessionId;
+    if (roomId == null || roomId === '') throw new Error('참여한 여행방 정보를 확인하지 못했습니다.');
+    router.replace({ name: 'vote-show', params: { roomId } });
   } catch (error) { errorMessage.value = error.response?.data?.message ?? '여행방에 참여하지 못했습니다.'; }
   finally { isJoining.value = false; }
 };
