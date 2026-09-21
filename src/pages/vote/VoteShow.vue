@@ -233,6 +233,7 @@ onMounted(fetchCandidates);
       <p v-else class="category-empty">이 카테고리에 해당하는 후보 카드가 없습니다.</p>
 
       <div v-if="activeCard" class="select-area">
+        <p class="vote-cancel-hint">투표한 카드는 하트 버튼을 한 번 더 누르면 투표가 취소됩니다.</p>
         <div class="vote-controls">
           <button
             class="nav-arrow"
@@ -470,6 +471,14 @@ onMounted(fetchCandidates);
   align-items: center;
   gap: 9px;
   margin-top: 48px;
+}
+
+.vote-cancel-hint {
+  margin: 0;
+  color: var(--team-color-gray-600);
+  font-size: 0.625rem;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .vote-controls {
