@@ -3,6 +3,7 @@ import { computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import BottomNav from "../../components/BottomNav.vue";
+import AppButton from "../../components/common/AppButton.vue";
 import VoteRoomButton from "../../components/common/VoteRoomButton.vue";
 import AppState from "../../components/common/AppState.vue";
 import CrowdBadge from "../../components/common/CrowdBadge.vue";
@@ -26,6 +27,17 @@ const hasLocation = computed(() => {
     && longitude <= 180
     && !(latitude === 0 && longitude === 0);
 });
+
+const openKakaoMapSearch = () => {
+  const placeName = place.value?.name?.trim();
+  if (!placeName) return;
+
+  window.open(
+    `https://map.kakao.com/link/search/${encodeURIComponent(placeName)}`,
+    "_blank",
+    "noopener,noreferrer",
+  );
+};
 
 const fetchPlace = async () => {
   const regionId = Number(route.query.regionId);
@@ -92,13 +104,26 @@ onMounted(fetchPlace);
         <PlaceCrowdForecastChart :forecasts="place.weeklyForecast" />
         <h2>주소</h2>
         <p class="address">{{ place.address || "-" }}</p>
-        <PlaceLocationMap
+        <div
           v-if="hasLocation"
-          class="location-map"
-          :latitude="Number(place.latitude)"
-          :longitude="Number(place.longitude)"
-          :place-name="place.name"
-        />
+          class="location-map-wrapper"
+        >
+          <PlaceLocationMap
+            class="location-map"
+            :latitude="Number(place.latitude)"
+            :longitude="Number(place.longitude)"
+            :place-name="place.name"
+          />
+          <AppButton
+            class="kakao-map-button"
+            variant="secondary"
+            size="small"
+            :aria-label="`${place.name} 카카오맵에서 검색`"
+            @click="openKakaoMapSearch"
+          >
+            카카오맵에서 보기 <span aria-hidden="true">↗</span>
+          </AppButton>
+        </div>
         <p v-else class="location-unavailable">위치 정보가 제공되지 않았습니다.</p>
         <h2>접근성</h2>
         <small
@@ -212,10 +237,23 @@ onMounted(fetchPlace);
   min-height: 28px;
   margin-bottom: 10px;
 }
-.location-map {
+.location-map-wrapper {
+  position: relative;
   width: 100%;
   aspect-ratio: 1;
   margin-bottom: 22px;
+  border-radius: 16px;
+}
+.location-map {
+  width: 100%;
+  height: 100%;
+}
+.kakao-map-button {
+  position: absolute;
+  z-index: 1000;
+  top: 12px;
+  right: 12px;
+  box-shadow: 0 4px 12px rgb(23 33 31 / 18%);
 }
 .details > p.location-unavailable {
   display: grid;
