@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import BottomNav from "../../components/BottomNav.vue";
 import VoteRoomButton from "../../components/common/VoteRoomButton.vue";
 import AppState from "../../components/common/AppState.vue";
 import CrowdBadge from "../../components/common/CrowdBadge.vue";
+import PlaceLocationMap from "../../components/map/PlaceLocationMap.vue";
 import PlaceCrowdForecastChart from "../../components/place/PlaceCrowdForecastChart.vue";
 import { usePlaceStore } from "../../store/place/usePlaceStore";
 
@@ -13,6 +14,18 @@ const route = useRoute();
 const router = useRouter();
 const placeStore = usePlaceStore();
 const { place, isLoading, errorMessage } = storeToRefs(placeStore);
+
+const hasLocation = computed(() => {
+  const latitude = Number(place.value?.latitude);
+  const longitude = Number(place.value?.longitude);
+  return Number.isFinite(latitude)
+    && Number.isFinite(longitude)
+    && latitude >= -90
+    && latitude <= 90
+    && longitude >= -180
+    && longitude <= 180
+    && !(latitude === 0 && longitude === 0);
+});
 
 const fetchPlace = async () => {
   const regionId = Number(route.query.regionId);
@@ -78,7 +91,15 @@ onMounted(fetchPlace);
         <h2>혼잡도 예측</h2>
         <PlaceCrowdForecastChart :forecasts="place.weeklyForecast" />
         <h2>주소</h2>
-        <p>{{ place.address || "-" }}</p>
+        <p class="address">{{ place.address || "-" }}</p>
+        <PlaceLocationMap
+          v-if="hasLocation"
+          class="location-map"
+          :latitude="Number(place.latitude)"
+          :longitude="Number(place.longitude)"
+          :place-name="place.name"
+        />
+        <p v-else class="location-unavailable">위치 정보가 제공되지 않았습니다.</p>
         <h2>접근성</h2>
         <small
           >♿
@@ -185,6 +206,26 @@ onMounted(fetchPlace);
   height: 28px;
   margin-bottom: 9px;
   font-size: 12px;
+}
+.details > p.address {
+  height: auto;
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+.location-map {
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 22px;
+}
+.details > p.location-unavailable {
+  display: grid;
+  place-items: center;
+  height: 120px;
+  margin-bottom: 22px;
+  border: var(--team-border-default);
+  border-radius: 16px;
+  background: var(--team-color-gray-100);
+  color: var(--team-color-gray-600);
 }
 .details > small {
   display: block;
