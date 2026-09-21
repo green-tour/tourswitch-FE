@@ -305,20 +305,17 @@ onMounted(fetchCandidates);
 
 .keyword-chips {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  overflow-x: auto;
   margin: 48px 22px 0;
   padding-bottom: 2px;
-  scrollbar-width: none;
-}
-
-.keyword-chips::-webkit-scrollbar {
-  display: none;
 }
 
 .chip {
   flex-shrink: 0;
-  padding: 4px 10px;
+  width: fit-content;
+  padding: 4px 8px;
   border-radius: var(--team-radius-pill);
   border: 1px solid var(--team-color-primary);
   background: var(--team-color-white);
