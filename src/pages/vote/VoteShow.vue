@@ -5,6 +5,7 @@ import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
+import { useActiveRoom } from '../../composables/useActiveRoom';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,6 +23,7 @@ const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
 const activeCategoryId = ref('all');
 const overviewByContentId = ref({});
+const { fetchActiveRoom } = useActiveRoom();
 
 // 설명은 후보 응답에 없어 카드를 펼칠 때 한 건씩만 상세로 채운다.
 const loadOverview = async (card) => {
@@ -53,11 +55,25 @@ const totalSelectedCount = computed(() =>
 // COURSE_CONFIRMED가 된 뒤에만 기존 투표를 수정할 수 없게 한다.
 const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
 
+// 방을 만든 사람만 roomCategories를 로컬에 저장한다. 초대 참여자도 서버의
+// 진행 중인 방 정보에서 같은 카테고리를 복원해야 필터를 사용할 수 있다.
+const restoreRoomCategories = async () => {
+  const activeRoom = await fetchActiveRoom({ force: true });
+  if (String(activeRoom?.roomId) !== String(roomId)) return;
+
+  const categories = (activeRoom.keywordIds ?? []).map((id, index) => ({
+    id,
+    name: activeRoom.keywordNames?.[index] ?? `카테고리 ${id}`,
+  }));
+  if (categories.length) roomCategories.value = categories;
+};
+
 const fetchCandidates = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    await restoreRoomCategories();
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
     if (roomStatus.value && !canRevote.value) {
