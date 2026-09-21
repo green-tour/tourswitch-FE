@@ -51,9 +51,9 @@ const totalSelectedCount = computed(() =>
     0,
   ),
 );
-// 방장이 1차 투표를 닫은 뒤에도 코스를 확정하기 전에는 다시 선택할 수 있다.
-// COURSE_CONFIRMED가 된 뒤에만 기존 투표를 수정할 수 없게 한다.
-const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
+// 실제 표 변경은 1차 투표 라운드(VOTING)에서만 한다.
+// CLOSED 방의 재투표는 현황 화면에서 재투표 시작 API를 호출해 VOTING으로 다시 연다.
+const canRevote = computed(() => roomStatus.value === 'VOTING');
 
 // 방을 만든 사람만 roomCategories를 로컬에 저장한다. 초대 참여자도 서버의
 // 진행 중인 방 정보에서 같은 카테고리를 복원해야 필터를 사용할 수 있다.
@@ -154,11 +154,14 @@ const completeVoting = async () => {
     return;
   }
   // 부가 후보는 관광지 투표가 끝나 경유지가 확정된 뒤에 만들어진다.
-  // 그래서 먼저 완료를 알리고, 라운드가 넘어갔으면 투표 현황이 추가 투표로 보낸다.
+  // 완료 응답의 상태로 다음 화면을 정하면 현황 화면을 경유하며 생기던 이동 혼선을 없앤다.
   isSubmitting.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true });
-    router.push({ name: 'vote-status-show', params: { roomId } });
+    const { data } = await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true });
+    router.replace({
+      name: data.data?.roomStatus === 'EXTRA_VOTING' ? 'additional-vote-show' : 'vote-status-show',
+      params: { roomId },
+    });
   } catch (error) {
     if (error.response?.status === 409) {
       router.replace({ name: 'vote-status-show', params: { roomId } });

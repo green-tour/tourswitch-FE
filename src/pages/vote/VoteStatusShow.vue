@@ -54,6 +54,7 @@ const readHostMemberId = () => {
 };
 
 const isClosing = ref(false);
+const isStartingRevote = ref(false);
 
 // 방장은 관광지 투표와 추가 투표 두 라운드 모두 강제로 끝낼 수 있다(서버도 두 상태를 받는다).
 const OPEN_STATUSES = ['VOTING', 'EXTRA_VOTING'];
@@ -70,6 +71,22 @@ const goToExtraVoteIfOpen = () => {
     return true;
   }
   return false;
+};
+
+// CLOSED 방은 서버에서 다시 VOTING으로 열고, VOTING 방은 내 완료 표시만 되돌린다.
+// 재투표 버튼을 눌렀을 때는 항상 관광지 투표부터 시작한다.
+const startRevote = async () => {
+  if (isStartingRevote.value) return;
+  isStartingRevote.value = true;
+  errorMessage.value = '';
+  try {
+    await myAxios.patch(`/rooms/${roomId}/revote`, null);
+    router.replace({ name: 'vote-show', params: { roomId } });
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? '재투표를 시작하지 못했습니다.';
+  } finally {
+    isStartingRevote.value = false;
+  }
 };
 
 const closeVoting = async () => {
@@ -194,7 +211,7 @@ onMounted(() => {
         </ul>
       </section>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
-      <div v-if="canRevote" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
+      <div v-if="canRevote" class="action-buttons"><button type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
       <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button>
     </main>
 
