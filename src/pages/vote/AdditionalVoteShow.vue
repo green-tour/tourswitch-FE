@@ -5,11 +5,13 @@ import myAxios from '../../api/myAxios';
 import AppState from '../../components/common/AppState.vue';
 import BottomNav from '../../components/BottomNav.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
+import { useActiveRoom } from '../../composables/useActiveRoom';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const roomId = route.params.roomId;
+const { fetchActiveRoom } = useActiveRoom();
 
 // 서버의 spot_role과 화면 라벨을 잇는다.
 const ROLE_LABELS = { FOOD: '음식점', LODGING: '숙박', SHOPPING: '쇼핑' };
@@ -45,6 +47,11 @@ const fetchCandidates = async () => {
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    const activeRoom = await fetchActiveRoom({ force: true });
+    if (String(activeRoom?.roomId) !== String(roomId) || activeRoom?.hostMemberId !== authStore.user.id) {
+      router.replace({ name: 'vote-status-show', params: { roomId } });
+      return;
+    }
     const { data } = await myAxios.get(`/rooms/${roomId}/extra-votes`);
     applyResponse(data.data);
     if (roomStatus.value !== 'EXTRA_VOTING') {
