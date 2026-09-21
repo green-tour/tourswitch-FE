@@ -59,6 +59,7 @@ const isClosing = ref(false);
 const OPEN_STATUSES = ['VOTING', 'EXTRA_VOTING'];
 const STATUS_LABELS = { VOTING: '투표 진행 중', EXTRA_VOTING: '추가 투표 진행 중' };
 const isRoundOpen = computed(() => OPEN_STATUSES.includes(roomStatus.value));
+const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
 
 // 관광지 투표가 끝나면 추가 투표 라운드로 넘어간다. 부가 옵션을 안 켠 방은 이 단계를 건너뛴다.
 // 이미 추가 투표를 마친 참여자는 보내지 않는다. 보내면 완료 후 되돌아와 두 화면을 오가게 된다.
@@ -193,7 +194,7 @@ onMounted(() => {
         </ul>
       </section>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
-      <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
+      <div v-if="canRevote" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
       <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button>
     </main>
 

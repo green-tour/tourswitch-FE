@@ -104,7 +104,10 @@ const next = async () => {
       .filter((keyword) => form.keywordIds.includes(keyword.id))
       .map(({ id, name }) => ({ id, name }));
     const categoryNames = selectedCategories.map((keyword) => keyword.name);
-    result.value = { ...room, inviteUrl: `${window.location.origin}/invite/${room.inviteToken}` };
+    // 토큰에 특수문자가 있어도 공유 링크의 경로가 깨지지 않도록 인코딩한다.
+    const inviteToken = room.inviteToken ?? room.inviteCode;
+    if (!inviteToken) throw new Error('초대 링크 정보를 받지 못했습니다.');
+    result.value = { ...room, inviteUrl: `${window.location.origin}/invite/${encodeURIComponent(inviteToken)}` };
     localStorage.setItem(`activeTravelRoom:${authStore.user.id}`, JSON.stringify({
       roomId: room.roomId,
       roomName: room.roomName,

@@ -158,16 +158,16 @@ export const mockAdapter = (config) => {
       },
       candidateCount: 14,
     });
+  if (url.includes("/participants") && config.method === "post")
+    return response(config, { roomId: "preview-room", status: "VOTING" });
   if (url.startsWith("/invites/"))
     return response(config, {
       valid: true,
-      sessionId: "preview-room",
+      roomId: "preview-room",
       travelDate: "2026-08-15",
       status: "VOTING",
       requiresAuthentication: true,
     });
-  if (url.includes("/participants") && config.method === "post")
-    return response(config, { sessionId: "preview-room" });
   if (url.endsWith("/candidates"))
     return response(config, {
       candidateGroups: ["HISTORY", "CULTURE", "CITY"].map((keywordCode) => ({
