@@ -9,7 +9,7 @@ defineProps({
   avatarUrl: { type: String, default: '' },
 });
 
-const emit = defineEmits(['close', 'navigate', 'navigate-place', 'logout']);
+const emit = defineEmits(['close', 'navigate', 'navigate-place', 'open-today-course', 'logout']);
 
 const recentPlace = ref(readRecentPlace());
 
@@ -48,7 +48,7 @@ function readRecentPlace() {
       <nav class="main-menu">
         <small>여행</small>
         <button type="button" @click="emit('navigate', 'history-index')">여행 기록</button>
-        <button type="button">오늘의 코스</button>
+        <button type="button" @click="emit('open-today-course')">오늘의 코스</button>
         <button type="button" @click="emit('navigate', 'room-create')">투표방( 여행방) 만들기</button>
         <template v-if="loggedIn">
           <small class="account-label">계정</small>

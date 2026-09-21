@@ -55,7 +55,9 @@ const openActiveTravel = () => {
 };
 const openTodayCourse = () => {
   const roomId = activeTravelRoom.value?.roomId;
-  if (roomId) router.push({ name: 'course-show', params: { roomId } });
+  if (!roomId) return;
+  menuOpen.value = false;
+  router.push({ name: 'course-show', params: { roomId } });
 };
 const go = (name) => { menuOpen.value = false; router.push({ name }); };
 const logout = async () => { await authStore.logout(); menuOpen.value = false; };
@@ -142,7 +144,7 @@ async function fetchPlaces() {
     <section v-if="isCategoryListing" class="home-section relaxed-section"><h2>{{ selectedCategory === '전체' ? '전체 관광지' : `${selectedCategory} 관광지` }}</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">해당 카테고리의 관광지 정보가 없습니다.</p></section>
     <template v-else><section class="home-section"><h2>지금 서울은?</h2><button class="map-preview" type="button" aria-label="혼잡도 지도 크게 보기" @click="router.push({ name: 'map-show' })"><CongestionMap :areas="congestionAreas" :interactive="false" /><strong v-if="!congestionAreas.length">혼잡도 지도</strong></button><div v-if="congestionLegend.length" class="legend"><span>혼잡도 범례</span><template v-for="item in congestionLegend" :key="item.level"><i :style="{ background: item.color }"></i>{{ item.level }}</template></div></section><section class="home-section relaxed-section"><h2>여유로운 관광지</h2><div v-if="displayedPlaces.length" class="relaxed-list"><FilteredPlaceCard v-for="place in displayedPlaces" :key="place.id" :place="place" @open="router.push({ name: 'place-show', params: { placeId: place.id }, query: isPreview ? { preview: '1' } : {} })" /></div><p v-else-if="!isPlacesLoading" class="relaxed-empty">현재 여유로운 관광지 정보가 없습니다.</p></section></template>
     <VoteRoomButton class="create-fab" @click="go('room-create')" /><BottomNav />
-    <Transition name="menu-drawer"><HomeMenuDrawer v-if="menuOpen" :logged-in="isLoggedIn" :nickname="authStore.user?.nickname" :avatar-url="authStore.user?.avatarUrl" @close="menuOpen = false" @navigate="go" @navigate-place="(placeId) => { menuOpen = false; router.push({ name: 'place-show', params: { placeId } }); }" @logout="logout" /></Transition>
+    <Transition name="menu-drawer"><HomeMenuDrawer v-if="menuOpen" :logged-in="isLoggedIn" :nickname="authStore.user?.nickname" :avatar-url="authStore.user?.avatarUrl" @close="menuOpen = false" @navigate="go" @navigate-place="(placeId) => { menuOpen = false; router.push({ name: 'place-show', params: { placeId } }); }" @open-today-course="openTodayCourse" @logout="logout" /></Transition>
   </main>
 </template>
 
