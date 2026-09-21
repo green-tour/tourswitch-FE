@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faHouse, faMapLocationDot, faRoute, faSquareCheck, faCircleUser } from '@fortawesome/free-solid-svg-icons';
@@ -12,6 +12,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const { activeRoom, fetchActiveRoom } = useActiveRoom();
+const voteNotice = ref('');
+let voteNoticeTimer;
 
 const isVoteActive = computed(() => ['vote-show', 'additional-vote-show', 'vote-status-show'].includes(route.name));
 const activeVoteRoomId = computed(() =>
@@ -26,6 +28,8 @@ onMounted(() => {
   if (authStore.isAuthenticated) fetchActiveRoom();
 });
 
+onBeforeUnmount(() => clearTimeout(voteNoticeTimer));
+
 const items = [
   { key: 'home', label: '홈', icon: faHouse, routeName: 'home-show' },
   { key: 'map', label: '지도', icon: faMapLocationDot, routeName: 'map-show' },
@@ -39,9 +43,23 @@ const isActive = (item) =>
   (item.key === 'course' && route.name === 'course-show') ||
   route.name === item.routeName;
 
-const navigate = (item) => {
-  if (item.key === 'vote' && activeVoteRoomId.value) {
-    router.push({ name: 'vote-show', params: { roomId: activeVoteRoomId.value } });
+const showVoteNotice = () => {
+  voteNotice.value = '진행 중인 투표방이 없어요. 투표방을 만든 뒤 이용해 주세요.';
+  clearTimeout(voteNoticeTimer);
+  voteNoticeTimer = setTimeout(() => {
+    voteNotice.value = '';
+  }, 3500);
+};
+
+const navigate = async (item) => {
+  if (item.key === 'vote') {
+    // 네비게이션을 누를 때 최신 방 상태를 다시 확인한다.
+    await fetchActiveRoom({ force: true });
+    if (activeVoteRoomId.value) {
+      router.push({ name: 'vote-show', params: { roomId: activeVoteRoomId.value } });
+      return;
+    }
+    showVoteNotice();
     return;
   }
   if (item.key === 'course' && activeCourseRoomId.value) {
@@ -50,16 +68,26 @@ const navigate = (item) => {
   }
   if (item.routeName) router.push({ name: item.routeName });
 };
+
+const isUnavailable = (item) =>
+  (item.key === 'vote' && !activeVoteRoomId.value) ||
+  (item.key === 'course' && !activeCourseRoomId.value);
 </script>
 
 <template>
   <nav class="bottom-nav" aria-label="주요 메뉴">
+    <Transition name="vote-notice">
+      <p v-if="voteNotice" class="vote-notice" role="status" aria-live="polite">
+        {{ voteNotice }}
+      </p>
+    </Transition>
     <button
       v-for="item in items"
       :key="item.key"
       class="nav-item"
-      :class="{ active: isActive(item) }"
-      :disabled="(!item.routeName && !['vote', 'course'].includes(item.key)) || (item.key === 'vote' && !activeVoteRoomId) || (item.key === 'course' && !activeCourseRoomId)"
+      :class="{ active: isActive(item), unavailable: isUnavailable(item) }"
+      :disabled="item.key === 'course' && !activeCourseRoomId"
+      :aria-disabled="isUnavailable(item)"
       type="button"
       @click="navigate(item)"
     >
@@ -101,6 +129,10 @@ const navigate = (item) => {
   cursor: default;
 }
 
+.nav-item.unavailable {
+  color: var(--team-color-gray-400);
+}
+
 .nav-item.active {
   color: var(--team-color-primary);
 }
@@ -112,5 +144,38 @@ const navigate = (item) => {
 
 .label {
   font-size: 0.625rem;
+}
+
+.vote-notice {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 10px);
+  max-width: min(330px, calc(100vw - 32px));
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #24352e;
+  box-shadow: 0 4px 12px #0002;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.vote-notice-enter-active,
+.vote-notice-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.vote-notice-enter-from,
+.vote-notice-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vote-notice-enter-active,
+  .vote-notice-leave-active {
+    transition: none;
+  }
 }
 </style>
