@@ -41,6 +41,7 @@ const emit = defineEmits(['select']);
     color: var(--team-color-black)
   }
   .category-bar button > span {
+    margin: 7px;
     width: 50px;
     height: 50px;
     display: grid;
