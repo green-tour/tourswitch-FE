@@ -80,7 +80,11 @@ const startRevote = async () => {
   isStartingRevote.value = true;
   errorMessage.value = '';
   try {
-    await myAxios.patch(`/rooms/${roomId}/revote`, null);
+    // 아직 1차 투표가 열려 있으면 서버 상태를 바꿀 필요 없이 바로 다시 고르면 된다.
+    // CLOSED인 경우에만 초안/추가 투표를 초기화하는 재투표 API를 호출한다.
+    if (roomStatus.value === 'CLOSED') {
+      await myAxios.patch(`/rooms/${roomId}/revote`, null);
+    }
     router.replace({ name: 'vote-show', params: { roomId } });
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '재투표를 시작하지 못했습니다.';
