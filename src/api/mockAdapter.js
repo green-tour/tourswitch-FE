@@ -96,6 +96,15 @@ export const mockAdapter = (config) => {
       candidateCount: 14,
       status: "VOTING",
     });
+  if (url === "/rooms/active")
+    return response(config, {
+      roomId: "preview-room",
+      roomName: "미리보기 여행",
+      travelDate: "2026-09-21",
+      keywordIds: [1, 2, 3],
+      keywordNames: ["역사문화", "문화예술", "도시공원"],
+      status: "VOTING",
+    });
   if (url === "/places") {
     const requestedCodes = Array.isArray(config.params?.keywordCodes)
       ? config.params.keywordCodes
@@ -201,6 +210,7 @@ export const mockAdapter = (config) => {
       candidates: places.map((place, index) => ({
         candidateId: index + 1,
         touristSpotId: index + 1,
+        keywordId: (index % 3) + 1,
         displayOrder: index + 1,
         voteCount: Math.max(1, 5 - index),
       })),
