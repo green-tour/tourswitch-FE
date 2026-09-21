@@ -23,7 +23,7 @@ const selectedCandidateIds = ref(readSelectedCandidateIds());
 const roomCategories = ref(readRoomCategories());
 const activeCategoryId = ref('all');
 const overviewByContentId = ref({});
-const { fetchActiveRoom } = useActiveRoom();
+const { activeRoom, fetchActiveRoom } = useActiveRoom();
 
 // 설명은 후보 응답에 없어 카드를 펼칠 때 한 건씩만 상세로 채운다.
 const loadOverview = async (card) => {
@@ -54,6 +54,10 @@ const totalSelectedCount = computed(() =>
 // 실제 표 변경은 1차 투표 라운드(VOTING)에서만 한다.
 // CLOSED 방의 재투표는 현황 화면에서 재투표 시작 API를 호출해 VOTING으로 다시 연다.
 const canRevote = computed(() => roomStatus.value === 'VOTING');
+const isHost = computed(() =>
+  String(activeRoom.value?.roomId) === String(roomId)
+  && activeRoom.value?.hostMemberId === authStore.user?.id,
+);
 
 // 방을 만든 사람만 roomCategories를 로컬에 저장한다. 초대 참여자도 서버의
 // 진행 중인 방 정보에서 같은 카테고리를 복원해야 필터를 사용할 수 있다.
@@ -159,7 +163,7 @@ const completeVoting = async () => {
   try {
     const { data } = await myAxios.patch(`/rooms/${roomId}/participants/me/completion`, { completed: true });
     router.replace({
-      name: data.data?.roomStatus === 'EXTRA_VOTING' ? 'additional-vote-show' : 'vote-status-show',
+      name: data.data?.roomStatus === 'EXTRA_VOTING' && isHost.value ? 'additional-vote-show' : 'vote-status-show',
       params: { roomId },
     });
   } catch (error) {
