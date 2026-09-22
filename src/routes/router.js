@@ -48,8 +48,20 @@ const routes = [
   },
   {
     path: "/me",
+    name: "profile-show",
+    component: () => import("../pages/member/ProfileShow.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/me/edit",
     name: "my-page-show",
     component: () => import("../pages/member/MyPageShow.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/me/favorites",
+    name: "favorite-place-index",
+    component: () => import("../pages/member/FavoritePlaceIndex.vue"),
     meta: { requiresAuth: true },
   },
   {
