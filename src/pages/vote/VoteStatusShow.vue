@@ -130,10 +130,7 @@ const fetchStatus = async () => {
   }
 };
 
-onMounted(() => {
-  fetchActiveRoom();
-  fetchStatus();
-});
+onMounted(fetchStatus);
 </script>
 
 <template>
