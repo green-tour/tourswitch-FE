@@ -53,7 +53,8 @@ const emit = defineEmits(['select']);
   .category-bar img {
     width: 34px;
     height: 34px;
-    object-fit: contain
+    object-fit: contain;
+    mix-blend-mode: multiply
   }
   .category-bar small {
     display: block;

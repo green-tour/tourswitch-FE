@@ -239,6 +239,7 @@ onMounted(fetchPlace);
 }
 .location-map-wrapper {
   position: relative;
+  isolation: isolate;
   width: 100%;
   aspect-ratio: 1;
   margin-bottom: 22px;
@@ -250,7 +251,7 @@ onMounted(fetchPlace);
 }
 .kakao-map-button {
   position: absolute;
-  z-index: 1000;
+  z-index: 1;
   top: 12px;
   right: 12px;
   box-shadow: 0 4px 12px rgb(23 33 31 / 18%);
