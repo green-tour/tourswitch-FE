@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import BottomNav from "../../components/BottomNav.vue";
 import AppButton from "../../components/common/AppButton.vue";
+import AppModal from "../../components/common/AppModal.vue";
 import VoteRoomButton from "../../components/common/VoteRoomButton.vue";
 import AppState from "../../components/common/AppState.vue";
 import CrowdBadge from "../../components/common/CrowdBadge.vue";
@@ -15,6 +16,11 @@ const route = useRoute();
 const router = useRouter();
 const placeStore = usePlaceStore();
 const { place, isLoading, errorMessage } = storeToRefs(placeStore);
+const showSummaryModal = ref(false);
+
+const hasDetailedSummary = computed(
+  () => (place.value?.summary?.trim().length ?? 0) > 80,
+);
 
 const hasLocation = computed(() => {
   const latitude = Number(place.value?.latitude);
@@ -99,7 +105,16 @@ onMounted(fetchPlace);
         />
       </section>
       <section class="details">
-        <p class="summary">{{ place.summary || "제공 정보 없음" }}</p>
+        <div class="summary-preview">
+          <p>{{ place.summary || "제공 정보 없음" }}</p>
+          <button
+            v-if="hasDetailedSummary"
+            type="button"
+            @click="showSummaryModal = true"
+          >
+            자세히 보기
+          </button>
+        </div>
         <h2>혼잡도 예측</h2>
         <PlaceCrowdForecastChart :forecasts="place.weeklyForecast" />
         <h2>주소</h2>
@@ -139,6 +154,13 @@ onMounted(fetchPlace);
         class="create-fab"
         @click="router.push({ name: 'room-create' })"
       /><BottomNav />
+      <AppModal
+        :open="showSummaryModal"
+        :title="`${place.name} 상세 설명`"
+        @close="showSummaryModal = false"
+      >
+        <p class="summary-modal-content">{{ place.summary }}</p>
+      </AppModal>
     </template>
   </main>
 </template>
@@ -216,18 +238,42 @@ onMounted(fetchPlace);
 .details {
   padding: 25px 23px 98px;
 }
-.summary {
-  min-height: 45px;
+.summary-preview {
   margin-bottom: 19px;
-  font-size: 12px;
-  line-height: 1.25;
+}
+.summary-preview p {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--team-color-gray-800);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.summary-preview button {
+  display: block;
+  margin: 8px 0 0 auto;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--team-color-primary-dark);
+  font-size: 13px;
+  font-weight: var(--team-font-weight-bold);
+}
+.summary-modal-content {
+  color: var(--team-color-gray-800);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  white-space: pre-line;
 }
 .details h2 {
   margin: 0 0 8px;
   color: var(--team-color-primary);
   font-size: 14px;
 }
-.details > p:not(.summary) {
+.details > p {
   height: 28px;
   margin-bottom: 9px;
   font-size: 12px;

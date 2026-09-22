@@ -62,15 +62,20 @@ const places = [
   },
 ];
 
-const weeklyForecast = [
-  { date: "2026-09-21", rate: 28, level: "보통" },
-  { date: "2026-09-22", rate: 36, level: "보통" },
-  { date: "2026-09-23", rate: 48, level: "보통" },
-  { date: "2026-09-24", rate: 64, level: "약간 붐빔" },
-  { date: "2026-09-25", rate: 72, level: "약간 붐빔" },
-  { date: "2026-09-26", rate: 82, level: "붐빔" },
-  { date: "2026-09-27", rate: 58, level: "약간 붐빔" },
+const forecastRates = [
+  28, 36, 48, 64, 72, 82, 58, 61, 75, 69,
+  78, 84, 66, 55, 49, 52, 73, 88, 79, 62,
+  57, 68, 74, 81, 71, 65, 59, 77, 85, 70,
 ];
+
+const weeklyForecast = forecastRates.map((rate, index) => {
+  const date = new Date(Date.UTC(2026, 8, 22 + index));
+  return {
+    date: date.toISOString().slice(0, 10),
+    rate,
+    level: rate >= 80 ? "붐빔" : rate >= 60 ? "약간 붐빔" : "보통",
+  };
+});
 
 const response = (config, data) =>
   Promise.resolve({
