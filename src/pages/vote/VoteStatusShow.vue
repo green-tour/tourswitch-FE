@@ -93,8 +93,16 @@ const closeVoting = async () => {
   if (isClosing.value) return;
   isClosing.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/close`, null);
-    // 상태와 참여자 정보를 한꺼번에 다시 읽는다. fetchStatus가 다음 단계로 보낼지 판단한다.
+    const { data } = await myAxios.patch(`/rooms/${roomId}/close`, null);
+    const nextStatus = data.data?.roomStatus;
+    if (nextStatus === 'EXTRA_VOTING') {
+      router.replace({ name: 'additional-vote-show', params: { roomId } });
+      return;
+    }
+    if (nextStatus === 'CLOSED') {
+      router.replace({ name: 'course-show', params: { roomId } });
+      return;
+    }
     await fetchStatus();
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
@@ -113,8 +121,6 @@ const fetchStatus = async () => {
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
     if (goToExtraVoteIfOpen()) return;
-    // 라운드가 끝났다고 코스로 넘겨버리면 최종 결과를 볼 수 없다.
-    // 여기는 현황 화면이므로 끝난 뒤에도 순위를 그대로 보여주고, 코스로는 버튼으로 넘어간다.
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
@@ -187,7 +193,6 @@ onMounted(fetchStatus);
       </section>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
       <div v-if="canRevote" class="action-buttons"><button type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
-      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button>
     </main>
 
     <BottomNav />

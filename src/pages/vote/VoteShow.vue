@@ -207,17 +207,20 @@ onMounted(fetchCandidates);
     <AppState v-else-if="candidateGroups.length === 0" message="아직 생성된 후보 카드가 없습니다. 여행방 생성 데이터를 확인해주세요." />
 
     <main v-else class="vote-content">
-      <div class="intro">
-        <p class="room-label">투표방(여행방) 이름</p>
-        <h1>마음에 드는 장소를 골라주세요.</h1>
-      </div>
+      <section class="vote-header">
+        <div class="intro">
+          <p class="room-label">투표방(여행방) 이름</p>
+          <h1>마음에 드는 장소를 골라주세요.</h1>
+        </div>
 
-      <div class="keyword-chips" aria-label="선택한 여행 카테고리">
-        <button v-for="category in filterCategories" :key="category.id" class="chip" :class="{ active: activeCategoryId === category.id }" type="button" @click="selectCategory(category.id)">{{ category.name }}</button>
-      </div>
+        <div class="keyword-chips" aria-label="선택한 여행 카테고리">
+          <button v-for="category in filterCategories" :key="category.id" class="chip" :class="{ active: activeCategoryId === category.id }" type="button" @click="selectCategory(category.id)">{{ category.name }}</button>
+        </div>
 
-      <p v-if="activeGroup" class="progress">{{ filteredCandidates.length ? activeCardIndex + 1 : 0 }} / {{ filteredCandidates.length }}</p>
+        <p v-if="activeGroup" class="progress">{{ filteredCandidates.length ? activeCardIndex + 1 : 0 }} / {{ filteredCandidates.length }}</p>
+      </section>
 
+      <section class="vote-body">
       <div v-if="activeCard" class="card-area">
         <div class="card-viewport" aria-live="polite">
           <div class="card-track" :style="cardTrackStyle">
@@ -277,6 +280,7 @@ onMounted(fetchCandidates);
       <button v-if="activeCard" class="complete-button" type="button" :disabled="isSubmitting" @click="completeVoting">
         {{ isSubmitting ? '처리 중' : '투표완료' }}
       </button>
+      </section>
     </main>
 
     <BottomNav />
@@ -290,21 +294,43 @@ onMounted(fetchCandidates);
   flex: 1;
   min-height: 100vh;
   overflow: hidden;
+  background: var(--team-color-white);
 }
 
 .vote-content {
-  padding-top: 46px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  padding: 46px 0 106px;
+}
+
+.vote-header {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.vote-body {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 22px;
 }
 
 .intro .room-label {
   color: var(--team-color-primary);
   font-size: 0.625rem;
   font-weight: 700;
-  margin: 0 22px 2px;
 }
 
 .intro h1 {
-  margin: 0 22px;
   font-size: 1rem;
   line-height: 1.35;
   font-weight: 800;
@@ -315,8 +341,7 @@ onMounted(fetchCandidates);
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin: 48px 22px 0;
-  padding-bottom: 2px;
+  padding: 0 22px 2px;
 }
 
 .chip {
@@ -345,7 +370,6 @@ onMounted(fetchCandidates);
 }
 
 .progress {
-  margin-top: 30px;
   text-align: center;
   color: var(--team-color-danger);
   font-size: 0.6875rem;
@@ -355,7 +379,6 @@ onMounted(fetchCandidates);
 .card-area {
   position: relative;
   height: 310px;
-  margin-top: 24px;
 }
 
 .category-empty {
@@ -474,7 +497,6 @@ onMounted(fetchCandidates);
   flex-direction: column;
   align-items: center;
   gap: 9px;
-  margin-top: 48px;
 }
 
 .vote-cancel-hint {
@@ -521,10 +543,9 @@ onMounted(fetchCandidates);
 }
 
 .complete-button {
-  display: block;
+  align-self: center;
   width: 70px;
   height: 30px;
-  margin: 39px auto 50px;
   border: none;
   border-radius: 999px;
   background: var(--team-color-primary);
@@ -536,6 +557,15 @@ onMounted(fetchCandidates);
 .complete-button:disabled,
 .heart-button:disabled {
   opacity: .55;
+}
+
+.page :deep(.bottom-nav) {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 390px);
+  margin: 0;
+  transform: translateX(-50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
