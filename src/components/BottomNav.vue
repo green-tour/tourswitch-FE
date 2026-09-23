@@ -35,12 +35,13 @@ const items = [
   { key: 'map', label: '지도', icon: faMapLocationDot, routeName: 'map-show' },
   { key: 'course', label: '코스', icon: faRoute },
   { key: 'vote', label: '투표', icon: faSquareCheck },
-  { key: 'profile', label: '프로필', icon: faCircleUser, routeName: 'my-page-show' },
+  { key: 'profile', label: '프로필', icon: faCircleUser, routeName: 'profile-show' },
 ];
 
 const isActive = (item) =>
   (item.key === 'vote' && isVoteActive.value) ||
   (item.key === 'course' && route.name === 'course-show') ||
+  (item.key === 'profile' && ['profile-show', 'my-page-show', 'favorite-place-index'].includes(route.name)) ||
   route.name === item.routeName;
 
 const showNavigationNotice = (message) => {
