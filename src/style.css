@@ -145,14 +145,11 @@
 html,
 body {
   height: 100%;
-}
-
-@media (max-width: 480px) {
-  body { background: var(--team-color-white); }
+  background: var(--team-color-white);
 }
 
 body {
-  background: var(--team-color-gray-100);
+  background: var(--team-color-white);
   color: var(--team-color-black);
   font-family: var(--team-font-family);
   line-height: var(--team-line-height-body);

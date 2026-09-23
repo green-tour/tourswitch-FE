@@ -12,8 +12,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const { activeRoom, fetchActiveRoom } = useActiveRoom();
-const voteNotice = ref('');
-let voteNoticeTimer;
+const navigationNotice = ref('');
+let navigationNoticeTimer;
 
 const isVoteActive = computed(() => ['vote-show', 'additional-vote-show', 'vote-status-show'].includes(route.name));
 const activeVoteRoomId = computed(() =>
@@ -28,7 +28,7 @@ onMounted(() => {
   if (authStore.isAuthenticated) fetchActiveRoom();
 });
 
-onBeforeUnmount(() => clearTimeout(voteNoticeTimer));
+onBeforeUnmount(() => clearTimeout(navigationNoticeTimer));
 
 const items = [
   { key: 'home', label: '홈', icon: faHouse, routeName: 'home-show' },
@@ -43,11 +43,11 @@ const isActive = (item) =>
   (item.key === 'course' && route.name === 'course-show') ||
   route.name === item.routeName;
 
-const showVoteNotice = () => {
-  voteNotice.value = '진행 중인 투표방이 없어요. 투표방을 만든 뒤 이용해 주세요.';
-  clearTimeout(voteNoticeTimer);
-  voteNoticeTimer = setTimeout(() => {
-    voteNotice.value = '';
+const showNavigationNotice = (message) => {
+  navigationNotice.value = message;
+  clearTimeout(navigationNoticeTimer);
+  navigationNoticeTimer = setTimeout(() => {
+    navigationNotice.value = '';
   }, 3500);
 };
 
@@ -59,11 +59,17 @@ const navigate = async (item) => {
       router.push({ name: 'vote-show', params: { roomId: activeVoteRoomId.value } });
       return;
     }
-    showVoteNotice();
+    showNavigationNotice('진행 중인 투표방이 없어요. 먼저 만들어 주세요.');
     return;
   }
-  if (item.key === 'course' && activeCourseRoomId.value) {
-    router.push({ name: 'course-show', params: { roomId: activeCourseRoomId.value } });
+  if (item.key === 'course') {
+    // 코스 확정 직후에도 바로 열 수 있도록 최신 방 상태를 확인한다.
+    await fetchActiveRoom({ force: true });
+    if (activeCourseRoomId.value) {
+      router.push({ name: 'course-show', params: { roomId: activeCourseRoomId.value } });
+      return;
+    }
+    showNavigationNotice('코스는 투표를 마친 뒤 이용할 수 있어요.');
     return;
   }
   if (item.routeName) router.push({ name: item.routeName });
@@ -76,9 +82,9 @@ const isUnavailable = (item) =>
 
 <template>
   <nav class="bottom-nav" aria-label="주요 메뉴">
-    <Transition name="vote-notice">
-      <p v-if="voteNotice" class="vote-notice" role="status" aria-live="polite">
-        {{ voteNotice }}
+    <Transition name="navigation-notice">
+      <p v-if="navigationNotice" class="navigation-notice" role="status" aria-live="polite">
+        {{ navigationNotice }}
       </p>
     </Transition>
     <button
@@ -86,7 +92,6 @@ const isUnavailable = (item) =>
       :key="item.key"
       class="nav-item"
       :class="{ active: isActive(item), unavailable: isUnavailable(item) }"
-      :disabled="item.key === 'course' && !activeCourseRoomId"
       :aria-disabled="isUnavailable(item)"
       type="button"
       @click="navigate(item)"
@@ -146,9 +151,9 @@ const isUnavailable = (item) =>
   font-size: 0.625rem;
 }
 
-.vote-notice {
+.navigation-notice {
   position: absolute;
-  right: 16px;
+  left: 50%;
   bottom: calc(100% + 10px);
   max-width: min(330px, calc(100vw - 32px));
   margin: 0;
@@ -159,22 +164,25 @@ const isUnavailable = (item) =>
   color: #fff;
   font-size: 0.75rem;
   line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
-.vote-notice-enter-active,
-.vote-notice-leave-active {
+.navigation-notice-enter-active,
+.navigation-notice-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.vote-notice-enter-from,
-.vote-notice-leave-to {
+.navigation-notice-enter-from,
+.navigation-notice-leave-to {
   opacity: 0;
-  transform: translateY(4px);
+  transform: translate(-50%, 4px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vote-notice-enter-active,
-  .vote-notice-leave-active {
+  .navigation-notice-enter-active,
+  .navigation-notice-leave-active {
     transition: none;
   }
 }

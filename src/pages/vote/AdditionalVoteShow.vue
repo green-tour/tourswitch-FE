@@ -106,7 +106,7 @@ const complete = async () => {
   isSubmitting.value = true;
   try {
     await myAxios.patch(`/rooms/${roomId}/extra-votes/completion`, null);
-    router.push({ name: 'vote-status-show', params: { roomId } });
+    router.replace({ name: 'course-show', params: { roomId } });
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '선택 완료 처리에 실패했습니다.';
   } finally {
