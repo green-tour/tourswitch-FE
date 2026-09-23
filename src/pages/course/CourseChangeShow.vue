@@ -198,7 +198,7 @@ onMounted(fetchRegions);
 </template>
 
 <style scoped>
-.page { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 100vh; padding: 18px 16px 0; background: #fbfaf5; }
+.page { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 100vh; padding: 18px 16px 0; background: #fff; }
 .page-header { display: flex; flex-direction: column; gap: 10px; }
 .back-button { align-self: flex-start; border: 0; background: transparent; color: var(--team-color-gray-600); font-size: .78rem; }
 .page-header h1 { font-size: 1.25rem; }

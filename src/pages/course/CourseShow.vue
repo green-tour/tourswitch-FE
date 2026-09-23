@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
-import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
 import BottomNav from '../../components/BottomNav.vue';
 import { useActiveRoom } from '../../composables/useActiveRoom';
@@ -23,7 +22,6 @@ const { fetchActiveRoom } = useActiveRoom();
 
 const isConfirmed = computed(() => course.value?.status === 'CONFIRMED');
 const isHost = computed(() => readActiveRoom()?.hostMemberId === authStore.user?.id);
-const roomName = computed(() => readActiveRoom()?.roomName ?? '투표방(여행방)');
 const hasReplacement = computed(() => course.value?.stops?.some((stop) => stop.isReplaced));
 const attractionCount = computed(() => course.value?.stops?.filter((stop) => stop.spotRole === 'ATTRACTION').length ?? 0);
 const pageTitle = computed(() => isConfirmed.value ? '오늘의 코스' : '추천 코스');
@@ -160,30 +158,6 @@ onMounted(fetchCourse);
   <main class="course-page" :class="{ 'today-course-page': isConfirmed }">
     <AppState v-if="isLoading" type="loading" message="추천 코스를 구성하고 있습니다." />
     <AppState v-else-if="errorMessage" type="error" :message="errorMessage" @retry="fetchCourse" />
-    <template v-else-if="isConfirmed">
-      <AppHeader title="오늘의 코스" @back="router.push({ name: 'home-show' })" />
-      <p class="today-status-line">{{ roomName }} · 확정된 코스예요</p>
-      <ol class="today-stop-list">
-        <li v-for="stop in course.stops" :key="stop.id">
-          <span class="today-order">{{ stop.visitOrder }}</span>
-          <strong>{{ stop.spotTitleSnapshot ?? '제공 정보 없음' }}</strong>
-          <button
-            v-if="!hasReplacement && stop.spotRole === 'ATTRACTION'"
-            class="today-replace-button"
-            type="button"
-            @click="openReplacement(stop)"
-          >대체 장소 찾기</button>
-          <span v-else-if="stop.isReplaced" class="today-replaced-label">교체됨</span>
-          <ul v-if="selectedExtrasByStopId[stop.id]?.length" class="today-extra-list">
-            <li v-for="extra in selectedExtrasByStopId[stop.id]" :key="extra.id">
-              <span class="today-extra-role">{{ ROLE_LABELS[extra.spotRole] ?? extra.spotRole }}</span>
-              <span>{{ extra.titleSnapshot ?? '제공 정보 없음' }}</span>
-              <small>{{ extra.distanceMeters }}m</small>
-            </li>
-          </ul>
-        </li>
-      </ol>
-    </template>
     <template v-else>
       <header class="course-header">
         <h1>{{ pageTitle }}</h1>
@@ -241,6 +215,6 @@ onMounted(fetchCourse);
 .card-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:12px;padding:0 14px 16px}.card-actions button,.recommendation-actions button{height:30px;border:1px solid #00bfc4;border-radius:999px;background:#fff;color:#00aeb3;font-size:10px;font-weight:800}.card-actions button:last-child,.confirm-button{border:0!important;background:#00bfc4!important;color:#fff!important}.card-actions button:disabled{background:#e6eeee!important;color:#8b9694!important}
 .recommendation-actions{display:flex;justify-content:center;gap:9px;margin:44px auto 0}.recommendation-actions button{width:106px}.edit-notice,.host-hint{margin:14px auto 0;color:#71807d;font-size:11px;text-align:center}.empty-course{padding:60px 0;color:#89928f;font-size:13px;text-align:center}
 .course-page :deep(.bottom-nav){position:fixed;left:50%;bottom:0;width:min(100%,390px);margin:0;transform:translateX(-50%)}
-.today-course-page{padding:12px 20px 92px;display:flex;flex-direction:column}.today-status-line{margin:8px 4px 20px;color:var(--team-color-gray-600);font-size:13px}.today-stop-list{display:grid;gap:10px;margin-bottom:24px;list-style:none}.today-stop-list>li{min-height:54px;padding:10px 18px;border:1px solid #a9e7e8;border-radius:16px;display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:14px}.today-order{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--team-color-primary);color:#fff;font-size:12px}.today-stop-list strong{font-size:14px}.today-replace-button{padding:7px 10px;border:1px solid var(--team-color-primary);border-radius:999px;background:#fff;color:var(--team-color-primary-dark);font-size:11px;font-weight:700}.today-replaced-label{padding:6px 9px;border-radius:999px;background:#dff5ec;color:var(--team-color-primary-dark);font-size:11px;font-weight:700}.today-extra-list{grid-column:2/-1;display:grid;gap:6px;margin-top:2px;padding-top:8px;border-top:1px dashed #cfe9e9;list-style:none}.today-extra-list li{display:flex;align-items:center;gap:8px;font-size:12px}.today-extra-list small{margin-left:auto;color:var(--team-color-gray-600);font-size:10px}.today-extra-role{padding:2px 8px;border-radius:999px;background:#e6f7f7;color:var(--team-color-primary-dark);font-size:10px;font-weight:700}
+.today-course-page{padding:31px 40px 92px}
 @media(max-width:340px){.course-page{padding-inline:24px}.course-list{gap:16px}}
 </style>

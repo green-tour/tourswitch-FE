@@ -5,6 +5,9 @@ const places = [
     summary:
       "35만 평 도심 속 숲, 사슴 방사장과 나비 정원을 지나 서울숲 카페거리까지 이어져요.",
     imageUrl: "/figma-assets/seoul-forest.png",
+    address: "서울특별시 성동구 뚝섬로 273",
+    latitude: 37.544388,
+    longitude: 127.037442,
     categoryCodes: ["CITY_PARK", "NATURE_MOUNTAIN"],
     accessibility: { wheelchair: "AVAILABLE", stroller: "AVAILABLE" },
     congestion: { level: "여유" },
@@ -14,6 +17,9 @@ const places = [
     name: "북촌 한옥마을",
     summary: "서울의 오래된 골목을 천천히 걸어보세요.",
     imageUrl: null,
+    address: "서울특별시 종로구 계동길 37",
+    latitude: 37.582604,
+    longitude: 126.983132,
     categoryCodes: ["HISTORICAL_RELIC", "STREET_TRAIL"],
     accessibility: {},
     congestion: { level: "보통" },
@@ -23,6 +29,9 @@ const places = [
     name: "석촌호수",
     summary: "호수를 따라 걷기 좋은 산책 명소예요.",
     imageUrl: null,
+    address: "서울특별시 송파구 잠실동 47",
+    latitude: 37.509807,
+    longitude: 127.100124,
     categoryCodes: ["CITY_PARK", "NATURE_MOUNTAIN"],
     accessibility: {},
     congestion: { level: "여유" },
@@ -32,6 +41,9 @@ const places = [
     name: "동대문 DDP",
     summary: "전시와 공연을 함께 즐길 수 있어요.",
     imageUrl: null,
+    address: "서울특별시 중구 을지로 281",
+    latitude: 37.566525,
+    longitude: 127.009223,
     categoryCodes: ["EXHIBITION_MUSEUM", "PERFORMANCE"],
     accessibility: {},
     congestion: { level: "보통" },
@@ -41,21 +53,29 @@ const places = [
     name: "남산 서울타워",
     summary: "서울 도심을 한눈에 바라보세요.",
     imageUrl: null,
+    address: "서울특별시 용산구 남산공원길 105",
+    latitude: 37.551169,
+    longitude: 126.988227,
     categoryCodes: ["LANDMARK_VIEW", "NATURE_MOUNTAIN"],
     accessibility: {},
     congestion: { level: "혼잡" },
   },
 ];
 
-const weeklyForecast = [
-  { date: "2026-09-21", rate: 28, level: "보통" },
-  { date: "2026-09-22", rate: 36, level: "보통" },
-  { date: "2026-09-23", rate: 48, level: "보통" },
-  { date: "2026-09-24", rate: 64, level: "약간 붐빔" },
-  { date: "2026-09-25", rate: 72, level: "약간 붐빔" },
-  { date: "2026-09-26", rate: 82, level: "붐빔" },
-  { date: "2026-09-27", rate: 58, level: "약간 붐빔" },
+const forecastRates = [
+  28, 36, 48, 64, 72, 82, 58, 61, 75, 69,
+  78, 84, 66, 55, 49, 52, 73, 88, 79, 62,
+  57, 68, 74, 81, 71, 65, 59, 77, 85, 70,
 ];
+
+const weeklyForecast = forecastRates.map((rate, index) => {
+  const date = new Date(Date.UTC(2026, 8, 22 + index));
+  return {
+    date: date.toISOString().slice(0, 10),
+    rate,
+    level: rate >= 80 ? "붐빔" : rate >= 60 ? "약간 붐빔" : "보통",
+  };
+});
 
 const response = (config, data) =>
   Promise.resolve({
@@ -132,7 +152,6 @@ export const mockAdapter = (config) => {
       ...(places.find((place) => place.id === url.split("/").pop()) ??
         places[0]),
       regionName: "성동구",
-      address: "-",
       weeklyForecast,
     });
   if (url === "/metadata/regions")

@@ -17,12 +17,9 @@ const errorMessage = ref('');
 const roomStatus = ref('');
 const participants = ref([]);
 const ranking = ref([]);
-const extraRanking = ref([]);
-const EXTRA_ROLE_LABELS = { FOOD: '음식점', LODGING: '숙박', SHOPPING: '쇼핑' };
 
 const completedCount = computed(() => participants.value.filter((p) => p.completed).length);
-const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount),
-  ...extraRanking.value.map((r) => r.voteCount)));
+const maxVoteCount = computed(() => Math.max(1, ...ranking.value.map((r) => r.voteCount)));
 const selectedRanking = computed(() => ranking.value.filter((item) => item.voteCount > 0));
 // 방장 판정은 서버가 준 hostMemberId로 한다. 로컬 기록에 기대면 방을 만든 기기에서만 맞다.
 const { activeRoom, fetchActiveRoom } = useActiveRoom();
@@ -54,6 +51,7 @@ const readHostMemberId = () => {
 };
 
 const isClosing = ref(false);
+const isStartingRevote = ref(false);
 
 // 방장은 관광지 투표와 추가 투표 두 라운드 모두 강제로 끝낼 수 있다(서버도 두 상태를 받는다).
 const OPEN_STATUSES = ['VOTING', 'EXTRA_VOTING'];
@@ -61,23 +59,50 @@ const STATUS_LABELS = { VOTING: '투표 진행 중', EXTRA_VOTING: '추가 투�
 const isRoundOpen = computed(() => OPEN_STATUSES.includes(roomStatus.value));
 const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
 
-// 관광지 투표가 끝나면 추가 투표 라운드로 넘어간다. 부가 옵션을 안 켠 방은 이 단계를 건너뛴다.
-// 이미 추가 투표를 마친 참여자는 보내지 않는다. 보내면 완료 후 되돌아와 두 화면을 오가게 된다.
+// 추가 투표는 방장만 진행한다. 방장이 완료한 뒤에는 현황에서 수동으로 라운드를 종료한다.
 const goToExtraVoteIfOpen = () => {
   const me = participants.value.find((participant) => participant.memberId === authStore.user?.id);
-  if (roomStatus.value === 'EXTRA_VOTING' && !me?.extraCompleted) {
+  if (roomStatus.value === 'EXTRA_VOTING' && isHost.value && !me?.extraCompleted) {
     router.replace({ name: 'additional-vote-show', params: { roomId } });
     return true;
   }
   return false;
 };
 
+// CLOSED 방은 서버에서 다시 VOTING으로 열고, VOTING 방은 내 완료 표시만 되돌린다.
+// 재투표 버튼을 눌렀을 때는 항상 관광지 투표부터 시작한다.
+const startRevote = async () => {
+  if (isStartingRevote.value) return;
+  isStartingRevote.value = true;
+  errorMessage.value = '';
+  try {
+    // 아직 1차 투표가 열려 있으면 서버 상태를 바꿀 필요 없이 바로 다시 고르면 된다.
+    // CLOSED인 경우에만 초안/추가 투표를 초기화하는 재투표 API를 호출한다.
+    if (roomStatus.value === 'CLOSED') {
+      await myAxios.patch(`/rooms/${roomId}/revote`, null);
+    }
+    router.replace({ name: 'vote-show', params: { roomId } });
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message ?? '재투표를 시작하지 못했습니다.';
+  } finally {
+    isStartingRevote.value = false;
+  }
+};
+
 const closeVoting = async () => {
   if (isClosing.value) return;
   isClosing.value = true;
   try {
-    await myAxios.patch(`/rooms/${roomId}/close`, null);
-    // 상태와 참여자 정보를 한꺼번에 다시 읽는다. fetchStatus가 다음 단계로 보낼지 판단한다.
+    const { data } = await myAxios.patch(`/rooms/${roomId}/close`, null);
+    const nextStatus = data.data?.roomStatus;
+    if (nextStatus === 'EXTRA_VOTING') {
+      router.replace({ name: 'additional-vote-show', params: { roomId } });
+      return;
+    }
+    if (nextStatus === 'CLOSED') {
+      router.replace({ name: 'course-show', params: { roomId } });
+      return;
+    }
     await fetchStatus();
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? '투표를 종료하지 못했습니다.';
@@ -91,12 +116,11 @@ const fetchStatus = async () => {
   errorMessage.value = '';
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
+    await fetchActiveRoom({ force: true });
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
     if (goToExtraVoteIfOpen()) return;
-    // 라운드가 끝났다고 코스로 넘겨버리면 최종 결과를 볼 수 없다.
-    // 여기는 현황 화면이므로 끝난 뒤에도 순위를 그대로 보여주고, 코스로는 버튼으로 넘어간다.
     ranking.value = (tally.candidates ?? tally.items ?? [])
       .map((candidate) => ({
         ...candidate,
@@ -105,9 +129,6 @@ const fetchStatus = async () => {
         imageUrl: candidate.imageUrl ?? candidate.place?.imageUrl,
       }))
       .sort((a, b) => b.voteCount - a.voteCount);
-    extraRanking.value = (tally.extraCandidates ?? [])
-      .filter((candidate) => candidate.voteCount > 0)
-      .sort((a, b) => b.voteCount - a.voteCount);
   } catch (error) {
     errorMessage.value = error.response?.data?.message ?? error.message ?? '투표 현황을 불러오지 못했습니다.';
   } finally {
@@ -115,10 +136,7 @@ const fetchStatus = async () => {
   }
 };
 
-onMounted(() => {
-  fetchActiveRoom();
-  fetchStatus();
-});
+onMounted(fetchStatus);
 </script>
 
 <template>
@@ -158,26 +176,6 @@ onMounted(() => {
         </ol>
         <p v-else class="empty-ranking">선택된 후보 카드가 없습니다.</p>
 
-        <template v-if="extraRanking.length">
-          <h3 class="extra-heading">음식점·숙박·쇼핑</h3>
-          <ol class="ranking-list">
-            <li v-for="(item, index) in extraRanking" :key="`extra-${item.candidateId}`" class="ranking-item">
-              <span class="rank-number">{{ index + 1 }}</span>
-              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.title" class="rank-thumb" />
-              <div v-else class="rank-thumb placeholder" aria-hidden="true"></div>
-              <div class="rank-body">
-                <p class="rank-title">
-                  <span class="extra-role">{{ EXTRA_ROLE_LABELS[item.spotRole] ?? item.spotRole }}</span>
-                  {{ item.title }}
-                </p>
-                <div class="rank-bar">
-                  <div class="rank-bar-fill" :style="{ width: (item.voteCount / maxVoteCount) * 100 + '%' }"></div>
-                </div>
-              </div>
-              <span class="rank-count">{{ item.voteCount }}표</span>
-            </li>
-          </ol>
-        </template>
       </section>
       <section class="status-card participant-card">
         <h2>참여자</h2>
@@ -194,8 +192,7 @@ onMounted(() => {
         </ul>
       </section>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
-      <div v-if="canRevote" class="action-buttons"><button type="button" @click="router.push({ name: 'vote-show', params: { roomId } })">재투표</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
-      <button v-else class="confirm-button" type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button>
+      <div v-if="canRevote" class="action-buttons"><button type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
     </main>
 
     <BottomNav />

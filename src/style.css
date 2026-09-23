@@ -1,3 +1,75 @@
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Thin.woff2") format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-ExtraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/SUIT-Heavy.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* 색상 - 브랜드 (Figma Color Palette 프레임 실측) */
   --team-color-primary: #00bfc4;
@@ -21,7 +93,7 @@
   --team-color-success-bg: #eaf8f2;
 
   /* 타이포그래피 */
-  --team-font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  --team-font-family: "SUIT", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
   --team-font-size-xs: 0.6875rem;
   --team-font-size-sm: 0.75rem;
   --team-font-size-md: 0.875rem;
@@ -73,14 +145,11 @@
 html,
 body {
   height: 100%;
-}
-
-@media (max-width: 480px) {
-  body { background: var(--team-color-white); }
+  background: var(--team-color-white);
 }
 
 body {
-  background: var(--team-color-gray-100);
+  background: var(--team-color-white);
   color: var(--team-color-black);
   font-family: var(--team-font-family);
   line-height: var(--team-line-height-body);
@@ -98,9 +167,15 @@ body {
   flex-direction: column;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font: inherit;
   color: inherit;
+}
+
+button {
   cursor: pointer;
 }
 

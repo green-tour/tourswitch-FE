@@ -4,6 +4,7 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { createLeafletMap, SEOUL_CENTER, SEOUL_ZOOM } from './leafletMap';
 
 const props = defineProps({
   areas: { type: Array, default: () => [] },
@@ -12,11 +13,6 @@ const props = defineProps({
   interactive: { type: Boolean, default: true },
 });
 const emit = defineEmits(['select']);
-
-const SEOUL_CENTER = [37.5665, 126.978];
-const SEOUL_ZOOM = 11;
-const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const TILE_ATTRIBUTION = '&copy; OpenStreetMap contributors';
 
 const container = ref(null);
 let map = null;
@@ -77,21 +73,11 @@ function drawPlacesOfSelectedArea() {
 }
 
 onMounted(() => {
-  map = L.map(container.value, {
+  map = createLeafletMap(container.value, {
     center: SEOUL_CENTER,
     zoom: SEOUL_ZOOM,
-    zoomControl: props.interactive,
-    dragging: props.interactive,
-    scrollWheelZoom: props.interactive,
-    doubleClickZoom: props.interactive,
-    touchZoom: props.interactive,
-    boxZoom: props.interactive,
-    keyboard: props.interactive,
-    tap: props.interactive,
-    // 출처 표기는 OpenStreetMap 타일 이용 조건이라 미리보기에서도 끄지 않는다.
-    attributionControl: true,
+    interactive: props.interactive,
   });
-  L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
   areaLayerGroup = L.layerGroup().addTo(map);
   placeLayerGroup = L.layerGroup().addTo(map);
   drawAreas();
