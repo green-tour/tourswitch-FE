@@ -198,7 +198,7 @@ onMounted(fetchRegions);
 </template>
 
 <style scoped>
-.page { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 100vh; padding: 18px 16px 0; background: #fff; }
+.page { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 100vh; padding: 18px 16px 90px; background: #fff; }
 .page-header { display: flex; flex-direction: column; gap: 10px; }
 .back-button { align-self: flex-start; border: 0; background: transparent; color: var(--team-color-gray-600); font-size: .78rem; }
 .page-header h1 { font-size: 1.25rem; }
@@ -224,5 +224,4 @@ onMounted(fetchRegions);
 .changed-course .order { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--team-color-primary); color: white; font-size: .72rem; }
 .changed-course strong { font-size: .82rem; }
 .replaced-label { padding: 6px 9px; border-radius: var(--team-radius-pill); background: #dff5ec; color: var(--team-color-primary-dark); font-size: .68rem; font-weight: 700; }
-.bottom-nav { margin-right: -16px; margin-left: -16px; }
 </style>

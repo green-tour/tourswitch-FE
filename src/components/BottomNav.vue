@@ -104,19 +104,19 @@ const isUnavailable = (item) =>
 </template>
 
 <style scoped>
+/* 모든 화면에서 같은 위치에 고정한다. 페이지는 내비 높이만큼 아래 여백을 둔다. */
 .bottom-nav {
-  position: sticky;
+  position: fixed;
   z-index: 10;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
   width: min(100%, 390px);
   height: 74px;
   display: flex;
   align-items: stretch;
   background: var(--team-color-white);
   border-top: 1px solid var(--team-color-gray-200);
-  margin-top: auto;
+  transform: translateX(-50%);
 }
 
 .nav-item {
