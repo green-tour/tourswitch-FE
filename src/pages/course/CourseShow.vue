@@ -214,7 +214,6 @@ onMounted(fetchCourse);
 .card-copy{position:relative;min-height:57px;padding:12px 18px}.card-copy strong{font-size:14px}.card-copy small{margin-left:7px;font-size:8px}.card-copy em{position:absolute;right:18px;bottom:13px;color:#00bfc4;font-size:9px;font-style:normal;font-weight:800}
 .card-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:12px;padding:0 14px 16px}.card-actions button,.recommendation-actions button{height:30px;border:1px solid #00bfc4;border-radius:999px;background:#fff;color:#00aeb3;font-size:10px;font-weight:800}.card-actions button:last-child,.confirm-button{border:0!important;background:#00bfc4!important;color:#fff!important}.card-actions button:disabled{background:#e6eeee!important;color:#8b9694!important}
 .recommendation-actions{display:flex;justify-content:center;gap:9px;margin:44px auto 0}.recommendation-actions button{width:106px}.edit-notice,.host-hint{margin:14px auto 0;color:#71807d;font-size:11px;text-align:center}.empty-course{padding:60px 0;color:#89928f;font-size:13px;text-align:center}
-.course-page :deep(.bottom-nav){position:fixed;left:50%;bottom:0;width:min(100%,390px);margin:0;transform:translateX(-50%)}
 .today-course-page{padding:31px 40px 92px}
 @media(max-width:340px){.course-page{padding-inline:24px}.course-list{gap:16px}}
 </style>

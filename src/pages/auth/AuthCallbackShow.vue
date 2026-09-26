@@ -9,7 +9,7 @@ const route = useRoute(); const router = useRouter(); const authStore = useAuthS
 const errorMessage = ref('');
 const authenticate = async () => {
   const responseCode = String(route.query.code ?? '');
-  if (responseCode === '26') { errorMessage.value = '탈퇴한 계정은 다시 로그인할 수 없습니다.'; return; }
+  if (responseCode === '26') { errorMessage.value = '탈퇴한 계정입니다. 다시 로그인하면 재가입할 수 있습니다.'; return; }
   if (responseCode === '28') { errorMessage.value = '카카오 인증에 실패했습니다. 다시 시도해주세요.'; return; }
   if (responseCode !== '00') { errorMessage.value = '유효하지 않은 로그인 응답입니다.'; return; }
   try {

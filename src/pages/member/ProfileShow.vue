@@ -18,6 +18,9 @@ const authStore = useAuthStore();
 const isLoading = ref(!authStore.user);
 const errorMessage = ref("");
 const initial = computed(() => authStore.user?.nickname?.trim().charAt(0) || "투");
+// 카카오 프로필 사진이 없거나 불러오지 못하면 닉네임 첫 글자로 대신한다.
+const hasAvatarError = ref(false);
+const avatarUrl = computed(() => (hasAvatarError.value ? "" : authStore.user?.avatarUrl ?? ""));
 
 const loadProfile = async () => {
   if (authStore.user) return;
@@ -56,7 +59,10 @@ onMounted(loadProfile);
     />
     <template v-else>
       <section class="profile-summary">
-        <div class="avatar" aria-hidden="true">{{ initial }}</div>
+        <div class="avatar" aria-hidden="true">
+          <img v-if="avatarUrl" :src="avatarUrl" alt="" referrerpolicy="no-referrer" @error="hasAvatarError = true" />
+          <template v-else>{{ initial }}</template>
+        </div>
         <h2>{{ authStore.user?.nickname }}</h2>
         <p>투어스위치와 즐거운 서울 여행을 만들어 보세요.</p>
       </section>
@@ -91,7 +97,8 @@ onMounted(loadProfile);
 <style scoped>
 .profile-page { min-height: 100vh; padding: 12px 20px 92px; display: flex; flex-direction: column; }
 .profile-summary { padding: 28px 0 24px; text-align: center; }
-.avatar { width: 88px; height: 88px; margin: 0 auto 13px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(145deg, var(--team-color-info-bg), #c8f2e2); color: var(--team-color-primary-dark); font-size: 32px; font-weight: 800; }
+.avatar { width: 88px; height: 88px; margin: 0 auto 13px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(145deg, var(--team-color-info-bg), #c8f2e2); color: var(--team-color-primary-dark); font-size: 32px; font-weight: 800; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-summary h2 { font-size: 20px; }
 .profile-summary p { margin-top: 5px; color: var(--team-color-gray-600); font-size: 12px; }
 .quick-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -107,5 +114,4 @@ onMounted(loadProfile);
 .settings-menu span { font-size: 14px; font-weight: 700; }
 .chevron { color: var(--team-color-gray-400); font-size: 11px; }
 .logout-button { margin: 30px auto 0; padding: 8px 16px; border: 0; background: transparent; color: var(--team-color-gray-600); font-size: 12px; text-decoration: underline; }
-.profile-page :deep(.bottom-nav) { position: fixed; width: min(100%, 390px); margin: auto; }
 </style>

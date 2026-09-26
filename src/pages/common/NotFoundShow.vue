@@ -21,5 +21,4 @@ const router = useRouter();
 .not-found h1{margin-top:12px;font-size:17px}
 .hint{margin-top:8px;color:var(--team-color-gray-600);font-size:12px}
 .not-found button{margin-top:28px;padding:11px 26px;border:0;border-radius:999px;background:var(--team-color-primary);color:#fff;font-size:12px;font-weight:700}
-.not-found :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
 </style>
