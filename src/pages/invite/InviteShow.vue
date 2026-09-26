@@ -7,7 +7,7 @@ import AppHeader from '../../components/common/AppHeader.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
 import { isMockMode } from '../../api/mockAdapter';
-import { preserveReturnTo } from '../../util/oauth';
+import { startKakaoLogin as startOAuthLogin } from '../../util/oauth';
 
 const route = useRoute();
 const router = useRouter();
@@ -17,14 +17,10 @@ const isLoading = ref(true);
 const isJoining = ref(false);
 const errorMessage = ref('');
 const isAuthenticated = computed(() => authStore.isAuthenticated || isMockMode());
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 const inviteToken = computed(() => String(route.params.inviteCode ?? ''));
 const inviteApiPath = computed(() => `/invites/${encodeURIComponent(inviteToken.value)}`);
 
-const startKakaoLogin = () => {
-  preserveReturnTo(route.fullPath);
-  window.location.assign(`${apiBaseUrl}/auth/login`);
-};
+const startKakaoLogin = () => startOAuthLogin(route.fullPath);
 
 const fetchInvite = async () => {
   isLoading.value = true; errorMessage.value = '';

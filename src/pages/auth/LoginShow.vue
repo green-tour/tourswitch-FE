@@ -1,17 +1,13 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { preserveReturnTo } from '../../util/oauth';
+import { startKakaoLogin as startOAuthLogin } from '../../util/oauth';
 
 const route = useRoute();
 // 일반 로그인은 홈으로 이동하고, 보호된 화면에서 진입한 경우에만 원래 경로로 복귀한다.
 const returnTo = computed(() => route.query.returnTo ?? '/');
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
-const startKakaoLogin = () => {
-  preserveReturnTo(returnTo.value);
-  window.location.assign(`${apiBaseUrl}/auth/oauth2/authorization/kakao`);
-};
+const startKakaoLogin = () => startOAuthLogin(returnTo.value);
 </script>
 
 <template>
