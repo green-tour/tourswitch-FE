@@ -559,14 +559,6 @@ onMounted(fetchCandidates);
   opacity: .55;
 }
 
-.page :deep(.bottom-nav) {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  width: min(100%, 390px);
-  margin: 0;
-  transform: translateX(-50%);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .card-track { transition: none; }

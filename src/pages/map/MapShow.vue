@@ -115,5 +115,4 @@ onMounted(fetchCongestion);
 .place-list .copy{height:41px;padding:10px 15px;display:block}
 .place-list .copy strong{font-size:14px}
 .place-list .copy small{margin-left:6px;color:#89928f;font-size:8px}
-.map-page :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
 </style>

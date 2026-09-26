@@ -51,5 +51,5 @@ onMounted(fetchPlaces);
 </template>
 
 <style scoped>
-.place-index{min-height:100vh;padding:0 0 84px;background:#fff}.place-index>header{height:58px;padding:0 25px;display:flex;align-items:center;justify-content:space-between}.place-index>header strong{font-size:20px}.place-index>header button{margin-left:12px;border:0;background:none;font-size:22px}.place-list{padding:30px 41px;display:grid;gap:31px}.create-fab{position:fixed;z-index:5;right:max(11px,calc((100vw - 390px)/2 + 11px));bottom:92px}.place-index :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}@media(max-width:390px){.place-list{padding-inline:10.5%}}
+.place-index{min-height:100vh;padding:0 0 84px;background:#fff}.place-index>header{height:58px;padding:0 25px;display:flex;align-items:center;justify-content:space-between}.place-index>header strong{font-size:20px}.place-index>header button{margin-left:12px;border:0;background:none;font-size:22px}.place-list{padding:30px 41px;display:grid;gap:31px}.create-fab{position:fixed;z-index:5;right:max(11px,calc((100vw - 390px)/2 + 11px));bottom:92px}@media(max-width:390px){.place-list{padding-inline:10.5%}}
 </style>

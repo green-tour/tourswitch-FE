@@ -182,5 +182,4 @@ onMounted(fetchCandidates);
 .card-body button.selected,.card-body button:hover{background:#f04452;color:#fff}
 .select-count{margin-top:18px;color:#4a4a4a;font-size:11px;text-align:center}
 .complete{display:block;width:80px;height:30px;margin:16px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:10px;font-weight:800}
-.additional-vote-page :deep(.bottom-nav){position:fixed;width:min(100%,390px);margin:auto}
 </style>

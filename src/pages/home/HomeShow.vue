@@ -565,11 +565,6 @@ async function fetchPlaces() {
   right: max(11px, calc((100vw - 390px) / 2 + 11px));
   bottom: 82px;
 }
-.home-page :deep(.bottom-nav) {
-  position: fixed;
-  width: min(100%, 390px);
-  margin: auto;
-}
 .menu-drawer-enter-active,
 .menu-drawer-leave-active {
   transition: opacity 0.22s ease;

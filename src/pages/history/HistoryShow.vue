@@ -81,5 +81,4 @@ onMounted(fetchDetail);
 .course-list span { width: 25px; height: 25px; border-radius: 50%; display: grid; flex: 0 0 auto; place-items: center; background: #00bfc4; color: #fff; font-size: 11px; font-weight: 800; }
 .course-list strong { color: #111; font-size: 14px; font-weight: 700; }
 .remake { width: 170px; min-width: 170px; height: 29px; margin: 59px auto auto; padding: 0; border-radius: 999px; font-size: 10px; }
-.detail-page :deep(.bottom-nav) { position: fixed; left: 50%; bottom: 0; width: min(100%, 390px); margin: 0; transform: translateX(-50%); }
 </style>

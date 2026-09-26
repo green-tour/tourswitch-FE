@@ -487,9 +487,4 @@ onBeforeUnmount(() => window.clearTimeout(shareMessageTimer));
   opacity: 0;
   transform: translate(-50%, 6px);
 }
-.place-show :deep(.bottom-nav) {
-  position: fixed;
-  width: min(100%, 390px);
-  margin: auto;
-}
 </style>

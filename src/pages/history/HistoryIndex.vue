@@ -143,12 +143,4 @@ h1 {
   text-align: center;
 }
 
-.history-page :deep(.bottom-nav) {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  width: min(100%, 390px);
-  margin: 0;
-  transform: translateX(-50%);
-}
 </style>

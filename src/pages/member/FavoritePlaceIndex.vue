@@ -53,5 +53,4 @@ onMounted(favoritePlaceStore.fetchFavorites);
 <style scoped>
 .favorite-page { min-height: 100vh; padding: 12px 20px 92px; display: flex; flex-direction: column; }
 .favorite-list { display: grid; gap: 16px; padding: 20px 0; }
-.favorite-page :deep(.bottom-nav) { position: fixed; width: min(100%, 390px); margin: auto; }
 </style>
