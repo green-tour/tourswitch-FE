@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import myAxios from '../../api/myAxios';
 import BottomNav from '../../components/BottomNav.vue';
@@ -57,7 +57,18 @@ const isStartingRevote = ref(false);
 const OPEN_STATUSES = ['VOTING', 'EXTRA_VOTING'];
 const STATUS_LABELS = { VOTING: '투표 진행 중', EXTRA_VOTING: '추가 투표 진행 중' };
 const isRoundOpen = computed(() => OPEN_STATUSES.includes(roomStatus.value));
-const canRevote = computed(() => ['VOTING', 'CLOSED'].includes(roomStatus.value));
+// 투표 중에는 누구나 자기 선택을 다시 고를 수 있지만, 종료된 방을 다시 여는 것은 방장만 한다.
+const canRevote = computed(() => roomStatus.value === 'VOTING' || (roomStatus.value === 'CLOSED' && isHost.value));
+const allParticipantsCompleted = computed(() =>
+  participants.value.length > 0 && participants.value.every((participant) => participant.completed),
+);
+const showAllCompletedNotice = computed(() => isHost.value && roomStatus.value === 'VOTING' && allParticipantsCompleted.value);
+const waitingNotice = computed(() => {
+  if (isHost.value) return '';
+  if (roomStatus.value === 'EXTRA_VOTING') return '방장이 음식점·숙소·쇼핑 장소를 고르고 있어요. 끝나면 코스를 볼 수 있어요.';
+  if (roomStatus.value === 'VOTING') return '방장이 투표를 종료하면 결과로 코스가 만들어져요.';
+  return '';
+});
 
 // 추가 투표는 방장만 진행한다. 방장이 완료한 뒤에는 현황에서 수동으로 라운드를 종료한다.
 const goToExtraVoteIfOpen = () => {
@@ -111,12 +122,15 @@ const closeVoting = async () => {
   }
 };
 
-const fetchStatus = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
+// silent는 주기 갱신용이다. 로딩 화면으로 바꾸지 않고, 일시적인 실패는 다음 갱신에 맡긴다.
+const fetchStatus = async ({ silent = false } = {}) => {
+  if (!silent) {
+    isLoading.value = true;
+    errorMessage.value = '';
+  }
   try {
     if (!authStore.user?.id) throw new Error('로그인 정보를 확인하지 못했습니다.');
-    await fetchActiveRoom({ force: true });
+    if (!silent) await fetchActiveRoom({ force: true });
     const tally = (await myAxios.get(`/rooms/${roomId}/votes/tally`)).data.data;
     roomStatus.value = tally.roomStatus;
     participants.value = tally.participants;
@@ -130,13 +144,42 @@ const fetchStatus = async () => {
       }))
       .sort((a, b) => b.voteCount - a.voteCount);
   } catch (error) {
-    errorMessage.value = error.response?.data?.message ?? error.message ?? '투표 현황을 불러오지 못했습니다.';
+    if (!silent) errorMessage.value = error.response?.data?.message ?? error.message ?? '투표 현황을 불러오지 못했습니다.';
   } finally {
-    isLoading.value = false;
+    if (!silent) isLoading.value = false;
   }
 };
 
-onMounted(fetchStatus);
+// 방장은 참여자들의 완료를, 참여자는 방장의 종료를 기다리므로 라운드가 열려 있는 동안 현황을 다시 읽는다.
+const POLL_INTERVAL_MS = 5000;
+let pollTimer;
+let isPolling = false;
+
+const stopPolling = () => {
+  clearInterval(pollTimer);
+  pollTimer = undefined;
+};
+
+const pollStatus = async () => {
+  if (!isRoundOpen.value) {
+    stopPolling();
+    return;
+  }
+  if (isPolling || document.hidden || isClosing.value || isStartingRevote.value) return;
+  isPolling = true;
+  try {
+    await fetchStatus({ silent: true });
+  } finally {
+    isPolling = false;
+  }
+};
+
+onMounted(async () => {
+  await fetchStatus();
+  if (isRoundOpen.value) pollTimer = setInterval(pollStatus, POLL_INTERVAL_MS);
+});
+
+onBeforeUnmount(stopPolling);
 </script>
 
 <template>
@@ -191,8 +234,11 @@ onMounted(fetchStatus);
           </li>
         </ul>
       </section>
+      <p v-if="showAllCompletedNotice" class="all-completed-notice" role="status">모든 참여자가 투표를 완료했습니다. 투표를 종료해 주세요.</p>
+      <p v-if="waitingNotice" class="waiting-notice" role="status">{{ waitingNotice }}</p>
       <button v-if="isHost && isRoundOpen" class="close-button" type="button" :disabled="isClosing" @click="closeVoting">{{ isClosing ? '종료 중' : '투표 종료하기' }}</button>
-      <div v-if="canRevote" class="action-buttons"><button type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
+      <div v-if="roomStatus === 'VOTING'" class="action-buttons"><button type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'home-show' })">확인</button></div>
+      <div v-else-if="roomStatus === 'CLOSED'" class="action-buttons"><button v-if="canRevote" type="button" :disabled="isStartingRevote" @click="startRevote">{{ isStartingRevote ? '준비 중' : '재투표' }}</button><button type="button" @click="router.push({ name: 'course-show', params: { roomId } })">코스 보러 가기</button></div>
     </main>
 
     <BottomNav />
@@ -351,4 +397,5 @@ h1 {
 
 .page{min-height:100vh;padding:0}.status-content{padding:16px 20px 110px}.back{padding:0;margin:0;border:0;background:none;color:#c7c7c7;font-size:12px;font-weight:700}.status-content h1{margin:47px 0 12px;font-size:20px}.status-card{margin-top:20px;padding:20px 19px;border:1px solid #bdebed;border-radius:15px;background:#fff}.progress-value{font-size:24px;color:#00bfc4}.progress-value::first-letter{font-weight:800}.status-pill{padding:5px 12px;border-radius:999px;background:#20b878;color:#fff;font-size:9px;font-weight:700}.progress-bar{height:7px}.ranking-card h2,.participant-card h2{font-size:15px}.ranking-list{gap:9px;padding:10px 7px;background:#fdfbf7}.ranking-item{gap:7px}.rank-number{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#080808;color:#fff;font-size:9px}.rank-thumb{width:30px;height:30px;border-radius:6px}.rank-body{gap:2px}.rank-title{font-size:10px;font-weight:700}.rank-bar{height:4px;background:#eee5dd}.rank-count{font-size:9px;color:#111}.empty-ranking{padding:28px 0;color:#89928f;font-size:12px;text-align:center}.extra-heading{margin-top:18px;padding-top:14px;border-top:1px dashed #e7ded6;font-size:13px}.extra-role{display:inline-block;margin-right:5px;padding:1px 6px;border-radius:999px;background:#e6f7f7;color:#0c8f93;font-size:9px;vertical-align:middle}.participant-list{gap:17px}.participant-avatar{width:40px;height:40px;background:#ddd}.participant-name{font-size:12px}.participant-body small{font-size:8px}.participant-status{padding:3px 10px;border:1px solid #bcbcbc;border-radius:999px;color:#999;font-size:9px}.participant-status.completed{border-color:#00bfc4;color:#00bfc4}.complete-button,.close-button{display:block;width:100px;height:32px;margin:28px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:11px;font-weight:800}.close-button{margin-top:16px}
 .ranking-list{gap:22px;background:transparent}.ranking-item{gap:12px}.rank-thumb{width:60px;height:60px;border-radius:12px}.rank-body{gap:6px}.rank-title{font-size:14px}.rank-bar{height:7px}.rank-count{font-size:12px}.confirm-button{display:block;width:100px;height:32px;margin:28px auto 0;border:0;border-radius:999px;background:#00bfc4;color:#fff;font-size:11px;font-weight:800}.action-buttons{display:flex;justify-content:center;gap:12px;margin:28px auto 0}.action-buttons button{width:90px;height:32px;border:1px solid #00bfc4;border-radius:999px;background:#fff;color:#00bfc4;font-size:11px;font-weight:800}.action-buttons button:last-child{background:#00bfc4;color:#fff}
+.all-completed-notice,.waiting-notice{margin:24px 0 0;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5;text-align:center}.all-completed-notice{background:#e6f8f1;color:#12815a;font-weight:700}.waiting-notice{background:#f4f6f5;color:#6b7572}.all-completed-notice+.close-button{margin-top:14px}.action-buttons button{width:auto;min-width:90px;padding:0 14px}
 </style>
