@@ -6,6 +6,7 @@ import AppState from '../../components/common/AppState.vue';
 import BottomNav from '../../components/BottomNav.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
 import { useActiveRoom } from '../../composables/useActiveRoom';
+import { useSwipe } from '../../composables/useSwipe';
 
 const route = useRoute();
 const router = useRouter();
@@ -75,6 +76,18 @@ const move = (step) => {
   activeIndex.value = next;
 };
 
+const cardSwipe = useSwipe({
+  canPrev: () => activeIndex.value > 0,
+  canNext: () => activeIndex.value < activeCandidates.value.length - 1,
+  onPrev: () => move(-1),
+  onNext: () => move(1),
+});
+// 끄는 동안에는 손가락을 바로 따라오게 하고, 놓으면 전환 효과로 제자리를 찾는다.
+const cardSwipeStyle = computed(() => ({
+  transform: `translateX(${cardSwipe.offset.value}px)`,
+  transition: cardSwipe.isDragging.value ? 'none' : undefined,
+}));
+
 const toggleVote = async (candidate) => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
@@ -132,10 +145,10 @@ onMounted(fetchCandidates);
       <p v-if="activeCandidates.length" class="progress">{{ activeIndex + 1 }} / {{ activeCandidates.length }}</p>
 
       <p v-if="!activeCandidates.length" class="empty">이 카테고리에 추천할 장소가 없습니다.</p>
-      <section v-else class="card-area">
+      <section v-else class="card-area" v-on="cardSwipe.handlers" @click.capture="cardSwipe.clickCapture">
         <button class="arrow left" type="button" :disabled="activeIndex === 0" @click="move(-1)">‹</button>
         <button class="arrow right" type="button" :disabled="activeIndex >= activeCandidates.length - 1" @click="move(1)">›</button>
-        <article v-if="activeCard" class="candidate-card">
+        <article v-if="activeCard" class="candidate-card" :style="cardSwipeStyle">
           <span class="photo" :style="{ backgroundImage: `url(${activeCard.imageUrl || '/figma-assets/place-placeholder.svg'})` }" role="img" :aria-label="activeCard.title"></span>
           <div class="card-body">
             <h2>{{ activeCard.title }}</h2>
@@ -165,12 +178,12 @@ onMounted(fetchCandidates);
 .chips button:hover,.chips button.active{background:#00bfc4;color:#fff}
 .progress{margin-top:24px;color:#f04452;font-size:11px;font-weight:800;text-align:center}
 .empty{margin-top:40px;color:#89928f;font-size:12px;text-align:center}
-.card-area{position:relative;margin-top:18px;display:flex;justify-content:center}
+.card-area{position:relative;margin-top:18px;display:flex;justify-content:center;touch-action:pan-y;user-select:none}
 .arrow{position:absolute;z-index:2;top:120px;border:0;background:none;color:#202124;font-size:44px;line-height:.6}
 .arrow:disabled{color:#ddd}
 .arrow.left{left:28px}
 .arrow.right{right:28px}
-.candidate-card{position:relative;z-index:1;width:209px;overflow:hidden;border-radius:15px;background:#fff;box-shadow:0 8px 15px rgb(23 33 31 / 8%)}
+.candidate-card{position:relative;z-index:1;width:209px;overflow:hidden;border-radius:15px;background:#fff;box-shadow:0 8px 15px rgb(23 33 31 / 8%);transition:transform .3s cubic-bezier(.22,.72,.24,1)}
 .candidate-card .photo{display:block;width:100%;height:170px;background-position:center;background-size:cover;background-color:#e7e7e7}
 .card-body{padding:12px 14px}
 .card-body h2{font-size:14px}

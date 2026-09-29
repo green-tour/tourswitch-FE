@@ -6,6 +6,7 @@ import BottomNav from '../../components/BottomNav.vue';
 import AppState from '../../components/common/AppState.vue';
 import { useAuthStore } from '../../store/auth/useAuthStore';
 import { useActiveRoom } from '../../composables/useActiveRoom';
+import { useSwipe } from '../../composables/useSwipe';
 
 const route = useRoute();
 const router = useRouter();
@@ -44,7 +45,11 @@ const filteredCandidates = computed(() => {
   return items.filter((item) => String(item.keywordId) === String(activeCategoryId.value));
 });
 const activeCard = computed(() => filteredCandidates.value[activeCardIndex.value] ?? null);
-const cardTrackStyle = computed(() => ({ transform: `translateX(${-activeCardIndex.value * 245}px)` }));
+const cardTrackStyle = computed(() => ({
+  transform: `translateX(${-activeCardIndex.value * 245 + cardSwipe.offset.value}px)`,
+  // 끄는 동안에는 손가락을 바로 따라오게 하고, 놓으면 기존 전환으로 제자리를 찾는다.
+  transition: cardSwipe.isDragging.value ? 'none' : undefined,
+}));
 const totalSelectedCount = computed(() =>
   candidateGroups.value.reduce(
     (count, group) => count + group.items.filter((item) => item.myVote).length,
@@ -115,6 +120,13 @@ const showNextCard = () => {
     activeCardIndex.value += 1;
   }
 };
+
+const cardSwipe = useSwipe({
+  canPrev: () => activeCardIndex.value > 0,
+  canNext: () => activeCardIndex.value < filteredCandidates.value.length - 1,
+  onPrev: showPrevCard,
+  onNext: showNextCard,
+});
 
 const selectCategory = (categoryId) => {
   activeCategoryId.value = categoryId;
@@ -222,10 +234,10 @@ onMounted(fetchCandidates);
 
       <section class="vote-body">
       <div v-if="activeCard" class="card-area">
-        <div class="card-viewport" aria-live="polite">
+        <div class="card-viewport" aria-live="polite" v-on="cardSwipe.handlers" @click.capture="cardSwipe.clickCapture">
           <div class="card-track" :style="cardTrackStyle">
             <article v-for="card in filteredCandidates" :key="card.candidateId" class="candidate-card">
-              <img v-if="card.imageUrl" :src="card.imageUrl" :alt="card.title" class="card-image" />
+              <img v-if="card.imageUrl" :src="card.imageUrl" :alt="card.title" class="card-image" draggable="false" />
               <div v-else class="card-image placeholder" aria-hidden="true"></div>
 
               <div class="card-body">
@@ -394,6 +406,9 @@ onMounted(fetchCandidates);
   width: 100%;
   height: 310px;
   overflow: hidden;
+  /* 세로 스크롤은 브라우저에 맡기고 가로 드래그만 스와이프로 받는다. */
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .card-track {
